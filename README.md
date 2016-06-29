@@ -48,4 +48,4 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at your own d
 	winFocus()
 	winOpen()
 ---
-<sub>Also includes statement that makes jQuery Modal Dialogs close when clicking on background.</sub>
+<sub>*Also includes statement that makes jQuery Modal Dialogs close when clicking on background.*</sub>
