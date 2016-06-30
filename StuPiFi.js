@@ -21,54 +21,7 @@
 /**	Date[extensions]()
  *	Date.add[Years|Months|Weeks|Days|Hours|Minutes|Seconds]()
  **/
-;(function() {	//	Date.add[Years|Months|Weeks|Days|Hours|Minutes|Seconds]
-	var methods = {
-			'addYears': function(v) { this.setFullYear(this.getFullYear() + parseFloat(v)); return this; },
-			'addMonths': function(v) { this.setMonth(this.getMonth() + parseFloat(v)); return this; },
-			'addWeeks': function(v) { this.addDays(7 * parseFloat(v)); return this; },
-			'addDays': function(v) { this.setDate(this.getDate() + parseFloat(v)); return this; },
-			'addHours': function(v) { this.setHours(this.getHours() + parseFloat(v)); return this; },
-			'addMinutes': function(v) { this.setMinutes(this.getMinutes() + parseFloat(v)); return this; },
-			'addSeconds': function(v) { this.setSeconds(this.getSeconds() + parseFloat(v)); return this; },
-		};
-	for (var k in methods) {
-		var v = methods[k];
-		Object['defineProperty'] && !Date.prototype.hasOwnProperty(k)
-			? Object.defineProperty(Date.prototype, k, { value: v }) : Date.prototype[k] = v;
-	}
-})();
-;(function() {	//	Date.get[Day|Month]Name
-	var methods = {
-			'getDayName': function(shortForm) {
-				var days = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thrusday", "Friday", "Saturday" ];
-				return shortForm ? days[this.getDay()].substr(0,3) : days[this.getDay()];
-			},
-			'getMonthName': function(shortForm) {
-				var months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
-				return shortForm ? months[this.getMonth()].substr(0,3) : months[this.getMonth()];
-			}
-		};
-	for (var k in methods) {
-		var v = methods[k];
-		Object['defineProperty'] && !Date.prototype.hasOwnProperty(k)
-			? Object.defineProperty(Date.prototype, k, { value: v }) : Date.prototype[k] = v;
-	}
-})();
-;(function() {	//	Date.getWeek
-	var methods = {
-			'getWeek': function() {
-				var a = new Date(this.getFullYear(), 0, 1);
-				return Math.ceil(((this - a) / 864E5 + a.getDay() + 1) / 7)
-			}
-		};
-	for (var k in methods) {
-		var v = methods[k];
-		Object['defineProperty'] && !Date.prototype.hasOwnProperty(k)
-			? Object.defineProperty(Date.prototype, k, { value: v }) : Date.prototype[k] = v;
-	}
-})();
-/*-mini-combo-*/
-;(function() {	//	Date.add[Years|Months|Weeks|Days|Hours|Minutes|Seconds]
+;(function() {	//	Date.add[Years|Months|Weeks|Days|Hours|Minutes|Seconds]; Date.get[Day|Month]Name; Date.getWeek
 	var methods = {
 			'addYears': function(v) { this.setFullYear(this.getFullYear() + parseFloat(v)); return this; },
 			'addMonths': function(v) { this.setMonth(this.getMonth() + parseFloat(v)); return this; },
@@ -101,7 +54,12 @@
  *	Element.defaultPX()
  *	Element.hasScroll()
  **/
-;(function() {	//	Element.defaultPX	//	jQuery.defaultPX	//	
+;(function() {	//	Element.defaultPX	//	jQuery.defaultPX	//	defaultPX Includes coverage for Element, HTMLCollection, && Array
+	/**	defaultPX Includes coverage for Element, HTMLCollection, && Array
+	 *	Element: because an element will have its own default px
+	 *	HTMLCollection: for use with things like `document.getElementsByTagName('div')`
+	 *	Array: Because jQuery HTML Collections are actually Arrays
+	 *	*/
 	//parseFloat(getComputedStyle(document.body, null).fontSize.replace(/[^\d\.]/g, ''))
 	function defaultPX() {
 		var args = Array.prototype.slice.call(arguments, 0),
@@ -370,7 +328,7 @@
  *	Math.runExample()
  *	Math.rand()
  **/
-;(function() {
+;(function() {	//	Math[doMath]	//	Because for some reason JS doesn't include these many ver basic math methods!
 	/*	[ 'average', 'difference', 'max', 'mean', 'median', 'medianMinMax', 'min', 'minMax', 'maxMin', 'mode', 'product', 'quotient', 'range', 'sum' ]	*/
 	var args = Array.prototype.slice.call(arguments, 1),
 		mathMax = Math.max,
@@ -589,7 +547,7 @@
 					exts = [ 'average', 'difference', 'max', 'mean', 'median', 'medianMinMax', 'min', 'minMax', 'maxMin', 'mode', 'product', 'quotient', 'range', 'sum' ];
 				if (args[0] instanceof Array) args = args[0];
 				for (x in exts) {
-					var str = "Math." + exts[x] + "(" + args.toString() + "):";
+					var str = "Math." + exts[x] + "(" + args.toString().replace('09.230.236', "'09.230.236'") + "):";
 					console.log(str + (str.length < 56 ? "\t\t\t" : (str.length < 60 ? "\t\t" : "\t")), Math[exts[x]].apply(Math, args));
 				}
 				return "Thank you for trying my Math extensions!";
@@ -642,6 +600,9 @@
 					if (obj[y][z]['valueOf']) ret.push(obj[y][z].valueOf());
 			}
 		}
+		
+		console.log(ret, str, obj, args)
+		
 		return ret ? ret.join(str) : "";
 	}
 	
@@ -796,24 +757,48 @@
  *	window.position()
  **/
 ;(function() {	//	window.position	//
-	window['position'] || (window['position'] = function() {
-		var position = function() {
-				var a = 0 <= /MSIE|Trident/i.test(navigator.userAgent) ? { x: window.screenLeft, y: window.screenTop } : { x: window.screenX, y: window.screenY };
-				void 0 == window.position && (window.position = {});
-				void 0 == window.position.history && (window.position.history = []);
-				if (void 0 == window.position.lastX || a.x != window.position.x) window.position.lastX = window.position.x;
-				if (void 0 == window.position.lastY || a.y != window.position.y) window.position.lastY = window.position.y;
-				window.position.x = a.x;
-				window.position.y = a.y;
-				window.position.history.push({ x: a.x, y: a.y, last: { x: window.position.lastX, y: window.position.lastY } });
-				return a;
-			},
-			pos = position();
-		position.originX = position.x = pos.x;
-		position.originY = position.y = pos.y;
-		position.history = [{ x: pos.x, y: pos.y, last: { x: pos.x, y: pos.y } }];
-		return position;
-	}());
+	var __PositionEventOnResizeTimer__;
+	
+	function PositionEventOnResize() {
+		if (__PositionEventOnResizeTimer__) clearTimeout(__PositionEventOnResizeTimer__);
+		__PositionEventOnResizeTimer__ = setTimeout(function() { if (this.position.onResizeLog) this.position.history.set(); }, 250);
+	}
+	
+	function PositionHistorySet() {
+		var a = { x: window.position.x, y: window.position.y },
+			b = this[this.length-1];
+		if (a.x != b.x || a.y != b.y) this.push(a);
+	}
+	
+	function PositionLastGet() {
+		if (this.history.length >= 2) return this.history[this.history.length-2];
+		else if (this.history.length) return this.history[this.history.length-1];
+		return this.origin;
+	}
+	
+	function Position() {
+		Object.defineProperties(this, {	//	{ x, y }
+			x: { get: function() { return window.screenLeft ? window.screenLeft : window.screenX; }, enumerable: true },
+			y: { get: function() { return window.screenTop ? window.screenTop : window.screenY; }, enumerable: true }
+		});
+		
+		Object.defineProperty(this.__proto__, 'history', { enumerable: false, value: new Array({ x: this.x, y: this.y }) });
+		Object.defineProperty(this.__proto__.history, 'set', { enumerable: false, value: PositionHistorySet });
+		
+		Object.defineProperty(this.__proto__, 'last', { get: PositionLastGet });
+		
+		Object.defineProperty(this.__proto__, 'onResizeLog', { enumerable: false, value: true, writable: true });
+		
+		Object.defineProperty(this.__proto__, 'origin', { enumerable: false, value: { x: this.x, y: this.y } });
+		
+		window.addEventListener('resize', PositionEventOnResize);
+		//setInterval(function() { this.position.history.set(); }, 250);
+	}
+	
+	if (!window.hasOwnProperty('position')) {
+		window.position = new Position();
+		
+	}
 })();
 
 /***	*M*E*T*H*O*D*S*		***/
