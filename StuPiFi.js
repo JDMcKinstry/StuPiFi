@@ -673,10 +673,62 @@
 })();
 
 /**	String[extensions]()
+ *	String.flip()
  *	String.matchUrl()
  *	String.reverse()
  *	String.similarTo()
  **/
+;(function() {	//	String.flip	//	?Flips text in string upside down
+	var flipTable = {
+		a: "\u0250",
+		b: "q",
+		c: "\u0254",
+		d: "p",
+		e: "\u01dd",
+		f: "\u025f",
+		g: "\u0183",
+		h: "\u0265",
+		i: "\u0131",
+		j: "\u027e",
+		k: "\u029e",
+		/*l : '\u0283',*/
+		m: "\u026f",
+		n: "u",
+		r: "\u0279",
+		t: "\u0287",
+		v: "\u028c",
+		w: "\u028d",
+		y: "\u028e",
+		".": "\u02d9",
+		"[": "]",
+		"(": ")",
+		"{": "}",
+		"?": "\u00bf",
+		"!": "\u00a1",
+		"'": ",",
+		"<": ">",
+		_: "\u203e",
+		";": "\u061b",
+		"\u203f": "\u2040",
+		"\u2045": "\u2046",
+		"\u2234": "\u2235",
+		"\r": "\n"
+	};
+	for (i in flipTable) flipTable[flipTable[i]] = i;
+	
+	function flipString() {
+		for (var b = [], a = 0; a < this.length; a++) {
+			var c = flipTable[this.charAt(a)];
+			b.push(void 0 != c ? c : this.charAt(a))
+		}
+		return b.join("")
+	};
+	
+	Object.defineProperty && !String.prototype.hasOwnProperty("flip") &&
+		Object.defineProperty(String.prototype, "flip", {
+			value: flipString
+		})
+})();
 ;(function() {	//	String.matchUrl	//	quick and ez access to regex match on url string
 	function matchUrl(url) {
 		var	regMatch = void 0,
@@ -721,10 +773,15 @@
 	}
 })();
 ;(function() {	//	String.reverse	//	Reverses a string
-	var name = "reverse";
-	function reverse() { for (var a = "", g = this.length - 1; 0 <= g; g--) a += this[g]; return a; }
-	Object['defineProperty'] && !String.prototype.hasOwnProperty(name)
-		? Object.defineProperty(String.prototype, name, { value: reverse }) : String.prototype[name] = reverse;
+	var props = {
+			'reverse': function() { for (var a = "", g = this.length - 1; 0 <= g; g--) a += this[g]; return a; },
+			'reverseWords': function() { var a = this.split(/ /); for (var x in a) a[x] = a[x].reverse(); return a.join(' '); }
+		}
+	for (var name in props) {
+		var method = props[name];
+		Object['defineProperty'] && !String.prototype.hasOwnProperty(name)
+			? Object.defineProperty(String.prototype, name, { value: method }) : String.prototype[name] = method;
+	}
 })();
 ;(function() {	//	String.similarTo	//	compare a string to given param to see if its similar
 	//	pass 2nd param true to have it check in reverse as well
@@ -1115,3 +1172,4 @@
 
 //	make jQuery modals close on clicking background
 if (jQuery) jQuery(document).on('click', '.ui-widget-overlay', function(e) { jQuery('.ui-dialog-content:visible').dialog('close'); });
+
