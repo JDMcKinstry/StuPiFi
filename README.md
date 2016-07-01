@@ -37,8 +37,10 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at your own d
 	RegExp.escape()
 ---
 ### String
+	String.flip()
 	String.matchUrl()
 	String.reverse()
+	String.reverseWords()
 	String.similarTo()
 ---
 ### window
