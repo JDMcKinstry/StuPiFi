@@ -41,6 +41,14 @@
 			'getWeek': function() {
 				var a = new Date(this.getFullYear(), 0, 1);
 				return Math.ceil(((this - a) / 864E5 + a.getDay() + 1) / 7)
+			},
+			'stdTimezoneOffset': function() {
+				var a = new Date(this.getFullYear(), 0, 1),
+					b = new Date(this.getFullYear(), 6, 1);
+				return Math.max(a.getTimezoneOffset(), b.getTimezoneOffset());
+			},
+			'dst': function() {
+				return this.getTimezoneOffset() < this.stdTimezoneOffset();
 			}
 		};
 	for (var k in methods) {
@@ -49,6 +57,96 @@
 			? Object.defineProperty(Date.prototype, k, { value: v }) : Date.prototype[k] = v;
 	}
 })();
+;(function() {	//	Date.format 	//	requires Date[addHours, addDays, addMonths, getDayName, getWeek]
+	var formats = {
+			/*	DAY	*/
+			'd': function() { var a = this.getDate(); return a > 9 ? a : '0' + a; },
+			'D': function() { return this.getDayName(true); },
+			'j': function() { return this.getDate(); },
+			'l': function() { return this.getDayName(); },
+			'N': function() { return this.getDay() + 1; },
+			'S': function() {
+				var suffixes = [ 'st', 'nd', 'rd', 'th' ],
+					a = this.getDate()
+				if (a == 1 || a == 21 || a ==31) return "st";
+				else if (a == 2 || a == 22) return "nd";
+				else if (a == 3 || a == 23) return "rd";
+				return "th";
+			},
+			'w': function() { return this.getDay(); },
+			'z': function() { return Math.round(Math.abs((this.getTime() - new Date('1/1/' + this.getFullYear()).getTime())/(8.64e7))); },
+			/*	WEEK	*/
+			'W': function() { return this.getWeek(); },
+			/*	MONTH	*/
+			'F': function() { return this.getMonthName(); },
+			'm': function() { var a = this.getMonth() + 1; return a > 9 ? a : '0' + a; },
+			'M': function() { return this.getMonthName(true); },
+			'n': function() { return this.getMonth() + 1; },
+			't': function() { return new Date(this).addMonths(1).addDays(-new Date(this).getDate()).getDate(); },
+			/*	YEAR	*/
+			'L': function() { var a = this.getFullYear(); return 0 == a % 4 && 0 != a % 100 || 0 == a % 400; },
+			'o': function() { return parseInt(this.getFullYear()); },	//	todo: base on week's parent year
+			'Y': function() { return parseInt(this.getFullYear()); },
+			'y': function() { return parseInt((this.getFullYear()+'').substr(-2)); },
+			/*	TIME	*/
+			'a': function() { return this.getHours() >= 12 ? "pm" : "am"; },
+			'A': function() { return this.getHours() >= 12 ? "PM" : "AM"; },
+			'B': function() { return "@"+("00"+Math.floor((((this.getHours()+1)%24*60+this.getMinutes())*60+this.getSeconds()+(this.getMilliseconds()*0.001))/86.4)).slice(-3); },
+			'g': function() { var a = this.getHours(); return a <= 12 ? a : a - 12; },
+			'G': function() { return this.getHours(); },
+			'h': function() { var a = this.getHours(); a = a <= 12 ? a : a - 12; return a > 9 ? a : '0' + a; },
+			'H': function() { var a = this.getHours(); return a > 9 ? a : '0' + a; },
+			'i': function() { var a = this.getMinutes(); return a > 9 ? a : '0' + a; },
+			's': function() { var a = this.getSeconds(); return a > 9 ? a : '0' + a; },
+			'u': function() { return this.getMilliseconds(); },	//	this is NOT microseconds ... it's JS :P,
+			/*	TIMEZONE	*/
+			'e': function() { var a = this.toString().match(/ ([A-Z]{3,4})([-|+]?\d{4})/); return a.length > 1 ? a[1] : ''; },
+			'I': function() {
+				var a = new Date(this.getFullYear(), 0, 1),
+					b = new Date(this.getFullYear(), 6, 1),
+					c = Math.max(a.getTimezoneOffset(), b.getTimezoneOffset());
+				return this.getTimezoneOffset() < c ? 1 : 0;
+			},
+			'O': function() { var a = this.toString().match(/ ([A-Z]{3,4})([-|+]?\d{4})/); return a.length > 2 ? a[2] : ''; },
+			'P': function() { var a = this.toString().match(/ ([A-Z]{3,4})([-|+]?\d{4})/); return a.length > 2 ? a[2].substr(0,3) + ':' + a[2].substr(3,2) : ''; },
+			'T': function() { return this.toLocaleString('en', {timeZoneName:'short'}).split(' ').pop(); },	//	may not be reliable on Apple Systems	//	NOTE: Apple Sux
+			'Z': function() { return this.getTimezoneOffset() * 60; },
+			/*	FULL DATE/TIME	*/
+			'c': function() { return new Date(this).addHours(-(this.getTimezoneOffset() / 60)).toISOString(); },
+			'r': function() { return new Date(this).addHours(-(this.getTimezoneOffset() / 60)).toISOString(); },
+			'U': function() { return this.getTime() / 1000; }
+		}
+	
+	function dateFormat(str, utc) {	//	string, boolean TODO: use utc bool to determine in converter methods if to use UTC version
+		if (str) {
+			var ret = str.split('');
+			for (var x in ret) {
+				if (ret[x] && /[a-z]/i.test(ret[x])) {
+					var rx = new RegExp(ret[x], 'g');
+					ret[x] = formats[ret[x]] ? formats[ret[x]].apply(this) : ret[x];
+				}
+			}
+			return ret.join('');
+		}
+		return str;
+	}
+	dateFormat.test = function() {
+		var a = 'd D j l N S w z W F m M n t L o Y y a A B g G h H i s u e I O P T Z c r U'.split(' '),
+			d = new Date();
+		for (var x in a) {
+			var b = a[x], f = d.format(b);
+			console.log("["+b+"]:\t%c\""+f+"\"", "color:red;");
+		}
+	}
+	
+	Object['defineProperty'] && !Date.prototype.hasOwnProperty('format')
+			? Object.defineProperty(Date.prototype, 'format', { value: dateFormat }) : Date.prototype['format'] = dateFormat;
+})();
+
+/*
+
+
+*/
 
 /**	Element[extensions]()
  *	Element.defaultPX()
@@ -328,7 +426,7 @@
  *	Math.runExample()
  *	Math.rand()
  **/
-;(function() {	//	Math[doMath]	//	Because for some reason JS doesn't include these many ver basic math methods!
+;(function() {	//	Math[doMath]	//	Because for some reason JS doesn't include these many very basic math methods!
 	/*	[ 'average', 'difference', 'max', 'mean', 'median', 'medianMinMax', 'min', 'minMax', 'maxMin', 'mode', 'product', 'quotient', 'range', 'sum' ]	*/
 	var args = Array.prototype.slice.call(arguments, 1),
 		mathMax = Math.max,
