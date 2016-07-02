@@ -8,6 +8,7 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at your own d
 	Date.add[Years|Months|Weeks|Days|Hours|Minutes|Seconds]()
 	Date.get[Day|Month]Name()
 	Date.getWeek()
+	Date.format('d D j l N S w z W F m M n t L o Y y a A B g G h H i s u e I O P T Z c r U') // same as PHP date format
 ---
 ### Element
 	Element.defaultPX()
