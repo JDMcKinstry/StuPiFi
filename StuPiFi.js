@@ -143,11 +143,6 @@
 			? Object.defineProperty(Date.prototype, 'format', { value: dateFormat }) : Date.prototype['format'] = dateFormat;
 })();
 
-/*
-
-
-*/
-
 /**	Element[extensions]()
  *	Element.defaultPX()
  *	Element.hasScroll()
@@ -978,7 +973,7 @@
 		hidden = "hidden";
 	
 	function winFocus() {
-		var args = Array.prototype.slice.call(arguments, 0)
+		var args = Array.prototype.slice.call(arguments, 0),
 			init = true, initMethods = [], methods = []
 		
 		for (var x in args) {
@@ -1268,6 +1263,110 @@
 	}
 })();
 
-//	make jQuery modals close on clicking background
-if (jQuery) jQuery(document).on('click', '.ui-widget-overlay', function(e) { jQuery('.ui-dialog-content:visible').dialog('close'); });
+/*	jQuery Extensions|Methods|Plugins	*/
+if (window.hasOwnProperty('jQuery')) {
+	(function($) {	//	$(ele).outerHTML();
+		$.extend({
+			outerHTML: function() {
+				var $ele = arguments[0],
+					args = Array.prototype.slice.call(arguments, 1)
+				if ($ele && !($ele instanceof jQuery) && (typeof $ele == 'string' || $ele instanceof HTMLCollection || $ele instanceof Array)) $ele = $($ele);
+				if ($ele && $ele.length) {
+					if ($ele.length == 1) return $ele[0].outerHTML;
+					else return $.map($("div"), function(ele,i) { return ele.outerHTML; });
+				}
+				throw new Error("Invalid Selector");
+			}
+		})
+		$.fn.extend({
+			outerHTML: function() {
+				var args = [this];
+				if (arguments.length) for (x in arguments) args.push(arguments[x]);
+				return $.outerHTML.apply($, args);
+			}
+		});
+	})(jQuery);
+	
+	/*	Require jQuery UI	*/
+	if (jQuery.hasOwnProperty('ui')) {
+		//	make jQuery modals close on clicking background
+		jQuery(document).on('click', '.ui-widget-overlay', function(e) { jQuery('.ui-dialog-content:visible').dialog('close'); });
+		
+		/**	$.ui.stylizeInputs
+		 *	If `$.stylizeInputs.init` is not set to `false` before loading plugin, then style script will be autoloaded to head tag upon load.
+		 *	Otherwise, style tag will not be added to head tag to first call to method `stylizeInputs`.
+		 *	Example setting global options before init:	`$.stylizeInputs = { init: false }`
+		 *	*/
+		(function($) {	//	$.ui.stylizeInputs	//	$(ele).stylizeInputs();	//	Global Options @ $.stylizeInputs
+			var opts = {  }
+			
+			function _create() {
+				if (!$.stylizeInputs.initialized) initStylizeInputs();
+				$('input:not([type=checkbox]):not([type=radio]), textarea').addClass('ui-state-default ui-widget-input-text');
+			}
+			
+			function initStylizeInputs() {
+				if ($.stylizeInputs.styles && !$('style').filter(function(i) { return /\.ui-widget-input/.test($(this).text()); }).length) {
+					var s = $('<style />', { type: 'text/css' }),
+						ls = $('head link, head style').last();
+					if (ls.length) s.insertAfter(ls);
+					else $('head').append(s);
+					$.each($.stylizeInputs.styles, function(k, v) {
+						if (typeof k == 'string') {
+							if (typeof v == 'string') s.append("\n\t\t\t" + k + " " + v);
+							else if (typeof v == 'object') {
+								s.append("\n\t\t\t" + k + " {");
+								$.each(v, function(prop, val) { s.append("\n\t\t\t\t" + prop + ": " + val + ";"); });
+								s.append("\n\t\t\t}");
+							}
+						}
+					});
+					s.append("\n\t\t");
+				}
+				$.stylizeInputs.initialized = true;
+			}
+			
+			$.widget('ui.stylizeInputs', { options: opts, _create: _create });
+			/*------------------------------------------*/
+			/*------------INIT HEAD STYLE---------------*/
+			/*------------------------------------------*/
+			var styles = {
+					'.ui-widget-input-text': {
+						'border-radius': '.8em',
+						'-webkit-border-radius': '.8em',
+						'font-family': 'inherit',
+						'font-size': '1em',
+						'line-height': '1.1em',
+						'margin': '.1em auto',
+						'outline': '0',
+						'padding': '.2em .4em .15em',
+						'text-align': 'left',
+						'text-shadow': '0 1px 0 #f3f3f3',
+						'-webkit-appearance': 'none',
+						'-webkit-box-shadow': 'inset 0 1px 3px rgba(0,0,0,.2)',
+						'-moz-box-shadow': 'inset 0 1px 3px rgba(0,0,0,.2)',
+						'box-shadow': 'inset 0 1px 3px rgba(0,0,0,.2)',
+						'-webkit-box-sizing': 'border-box',
+						'-moz-box-sizing': 'border-box',
+						'box-sizing': 'border-box',
+						'-webkit-background-clip': 'padding',
+						'background-clip': 'padding-box'
+					},
+					'.ui-state-default.ui-widget-input-text': '{ font-weight: inherit; }',
+					'.ui-widget-input-text:focus': '{ -webkit-box-shadow: 0 0 12px #38c; -moz-box-shadow: 0 0 12px #38c; box-shadow: 0 0 12px #38c; }'
+				}
+			
+			if (!$.hasOwnProperty('stylizeInputs')) $.stylizeInputs = { init: true, initialized: false, styles: styles };
+			else {
+				if (!$.stylizeInputs.hasOwnProperty('init')) $.stylizeInputs.init = true;
+				if (!$.stylizeInputs.hasOwnProperty('styles')) $.stylizeInputs.styles = styles;
+				else $.stylizeInputs.styles = $.extend(true, {}, styles, $.stylizeInputs.styles);
+				$.stylizeInputs.initialized = false;
+			}
+			
+			if ($.stylizeInputs.init) initStylizeInputs();
+		})(jQuery);
+	}
+}
+
 
