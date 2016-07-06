@@ -52,11 +52,11 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at your own d
 	winOpen()
 ---
 ### jQuery Extensions|Methods|Plugins
-	$.outerHTML()
-	$('selector').outerHTML()
+	$.outerHTML('selector') || $('selector').outerHTML()
 ---
 ### jQuery UI Extensions|Methods|Plugins
-	//	includes method to force dialog modal backgrounds to be click to close
 	$.ui.stylizeInputs()	//	$('selector').stylizeInputs();	//	Global Options @ $.stylizeInputs
----
+	
 <sub>*Also includes statement that makes jQuery Modal Dialogs close when clicking on background.*</sub>
+
+---
