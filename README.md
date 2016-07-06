@@ -57,6 +57,6 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at your own d
 ---
 ### jQuery UI Extensions|Methods|Plugins
 	//	includes method to force dialog modal backgrounds to be click to close
-	$.ui.stylizeInputs()
+	$.ui.stylizeInputs()	//	$('selector').stylizeInputs();	//	Global Options @ $.stylizeInputs
 ---
 <sub>*Also includes statement that makes jQuery Modal Dialogs close when clicking on background.*</sub>
