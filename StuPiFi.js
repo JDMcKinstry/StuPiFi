@@ -31,7 +31,7 @@
 			'addMinutes': function(v) { this.setMinutes(this.getMinutes() + parseFloat(v)); return this; },
 			'addSeconds': function(v) { this.setSeconds(this.getSeconds() + parseFloat(v)); return this; },
 			'getDayName': function(shortForm) {
-				var days = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thrusday", "Friday", "Saturday" ];
+				var days = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
 				return shortForm ? days[this.getDay()].substr(0,3) : days[this.getDay()];
 			},
 			'getMonthName': function(shortForm) {
@@ -40,7 +40,7 @@
 			},
 			'getWeek': function() {
 				var a = new Date(this.getFullYear(), 0, 1);
-				return Math.ceil(((this - a) / 864E5 + a.getDay() + 1) / 7)
+				return Math.ceil(((this - a) / 864E5 + a.getDay() + 1) / 7);
 			},
 			'stdTimezoneOffset': function() {
 				var a = new Date(this.getFullYear(), 0, 1),
@@ -57,7 +57,7 @@
 			? Object.defineProperty(Date.prototype, k, { value: v }) : Date.prototype[k] = v;
 	}
 })();
-;(function() {	//	Date.format 	//	requires Date[addHours, addDays, addMonths, getDayName, getWeek]
+;(function() {	//	Date.format 	//	requires Date[addHours, getDayName, getWeek]
 	var formats = {
 			/*	DAY	*/
 			'd': function() { var a = this.getDate(); return a > 9 ? a : '0' + a; },
@@ -82,7 +82,7 @@
 			'm': function() { var a = this.getMonth() + 1; return a > 9 ? a : '0' + a; },
 			'M': function() { return this.getMonthName(true); },
 			'n': function() { return this.getMonth() + 1; },
-			't': function() { return new Date(this).addMonths(1).addDays(-new Date(this).getDate()).getDate(); },
+			't': function() { return new Date(this.getFullYear(), this.getMonth()+1, 0).getDate() },
 			/*	YEAR	*/
 			'L': function() { var a = this.getFullYear(); return 0 == a % 4 && 0 != a % 100 || 0 == a % 400; },
 			'o': function() { return parseInt(this.getFullYear()); },	//	todo: base on week's parent year
@@ -187,47 +187,6 @@
 		return str;
 	}
 	
-	function dateFormatTest() {
-		var a = 'd D j l N S w z W F m M n t L o Y y a A B g G h H i s u e I O P T Z c r U'.split(' '),
-			d = new Date(), r = {};
-		for (var x in a) {
-			var b = a[x], f = d.format(b);
-			if (console && console.log) console.log("["+b+"]:\t%c\""+f+"\"", "color:red;");
-			r[x] = f;
-		}
-		return r;
-	}
-	
-	function dateFormatCompoundTest() {
-		var a = Date.prototype.format.compound, d = new Date(), r = {};
-		for (var x in a) {
-			var b = a[x];
-			if (typeof b == 'string') {
-				var f = d.format(b);
-				if (console && console.log) console.log("["+x+"] '"+b+"':\t%c\""+f+"\"", "color:red;");
-				r[x] = f;
-			}
-		}
-		return r;
-	}
-	
-	function dateFormatConstantsTest() {
-		var a = Date.prototype.format.constants, d = new Date(), r = {};
-		for (var x in a) {
-			var b = a[x];
-			if (typeof b == 'string') {
-				var f = d.format(b);
-				if (console && console.log) console.log("["+x+"] '"+b+"':\t%c\""+f+"\"", "color:red;");
-				r[x] = f;
-			}
-		}
-		return r;
-	}
-	
-	Object['defineProperty'] ? Object.defineProperty(compound, 'test', { value: dateFormatCompoundTest }) : compound['test'] = dateFormatCompoundTest;
-	Object['defineProperty'] ? Object.defineProperty(constants, 'test', { value: dateFormatConstantsTest }) : constants['test'] = dateFormatConstantsTest;
-	
-	Object['defineProperty'] ? Object.defineProperty(dateFormat, 'test', { value: dateFormatTest }) : dateFormat['test'] = dateFormatTest;
 	Object['defineProperty'] ? Object.defineProperty(dateFormat, 'compound', { value: compound }) : dateFormat['compound'] = compound;
 	Object['defineProperty'] ? Object.defineProperty(dateFormat, 'constants', { value: constants }) : dateFormat['constants'] = constants;
 	
