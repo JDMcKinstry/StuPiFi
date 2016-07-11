@@ -51,6 +51,9 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at with cauti
 	winFocus()
 	winOpen()
 ---
+### CLASSES
+	localStorageHelper
+---
 ### jQuery Extensions|Methods|Plugins
 	$.outerHTML('selector') || $('selector').outerHTML()
 ---
