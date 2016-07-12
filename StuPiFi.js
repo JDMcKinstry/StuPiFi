@@ -1,6 +1,226 @@
 /**	Array[extensions]()
+ *	Array.smartSort()
  *	Array.unique()
  **/
+;(function() {	//	Array.smartSort
+	function smartSort() {
+		var $this = this,
+			dir = void 0;
+		
+		//	first determine if a specific string for a|asc|d|dsc|desc was passed in
+		for (var x in arguments) {
+			if (typeof arguments[x] == 'string' && /^a([sc]{2})?$|^d([e]?[sc]{2,3})?$/i.test(arguments[x])) {
+				dir = /^a([sc]{2})?$/i.test(arguments[x]) ? true : false;
+				delete arguments[x];
+				break;
+			}
+			else if (typeof arguments[x] == 'boolean') {
+				dir = arguments[x];
+				delete arguments[x];
+				break;
+			}
+		}
+		
+		//	if direction still not set, then set to true/asc
+		if (void 0 == dir) dir = true;
+		
+		Object.defineProperty(this, "dir", {
+			enumerable: false,
+			value: dir,
+			writable: true
+		});
+		
+		//	numbers, strings, booleans, dates, elements, arrays, objects, null|undefined
+		function ss(a, b, dir) {
+			// var dir = $this.dir;
+			//	immidiate return for emtpy values
+			if ((null == a || void 0 == a) && b !== b) return 1;
+			if ((null == b || void 0 == b) && a !== a) return -1;
+			if (null == a || void 0 == a || a !== a) return 1;
+			if (null == b || void 0 == b || b !== b) return -1;
+			
+			//	make string numbers into real numbers
+			var regNum = new RegExp(/^-?\d+\.?\d*$|^\d*\.?\d+$/);
+			if (regNum.test(a)) a = parseFloat(a);
+			if (regNum.test(b)) b = parseFloat(b);
+			
+			var aType = typeof a,
+				bType = typeof b,
+				cType = aType + bType;
+				
+			var aInstance = Object.prototype.toString.call(a).slice(8, -1),
+				bInstance = Object.prototype.toString.call(b).slice(8, -1),
+				cInstance = aInstance + bInstance;
+			
+			// if (/Array/ig.test(cInstance)) console.log(dir);
+			if (/Array/ig.test(aInstance)) a.sort(function(aa,bb){return ss(aa,bb,dir)});
+			if (/Array/ig.test(bInstance)) b.sort(function(aa,bb){return ss(aa,bb,dir)});
+			
+			if (aType == bType) {
+				switch (aType || bType) {
+					case 'boolean': return a === b ? 0 : (dir ? (a ? 1 : -1) : (b ? 1 : -1));
+					case 'number': return a === b ? 0 : (dir ? (a < b ? -1 : 1) : (a > b ? -1 : 1));
+					case 'string':
+						a = a.valueOf().toLowerCase();
+						b = b.valueOf().toLowerCase();
+						return a === b ? 0 : (dir ? (a < b ? -1 : 1) : (a > b ? -1 : 1));
+					case 'object':
+						if (aInstance == bInstance || /^((HTML)\w+(Element)){2}$/.test(cInstance)) {
+							if (/(date){2}/ig.test(cInstance)) {
+								var aValue = a.valueOf(),
+									bValue = b.valueOf();
+								return aValue === bValue ? 0 : (dir ? (aValue < bValue ? -1 : 1) : (aValue > bValue ? -1 : 1));
+							}
+							else if (/^((HTML)\w+(Element)){2}$/.test(cInstance)) {
+								if (a.id && b.id) return a.id === b.id ? 0 : (dir ? (a.id < b.id ? -1 : 1) : (a.id > b.id ? -1 : 1));
+								else if (a.id || b.id) return (dir ? a.id && !b.id : !a.id && b.id) ? 1 : -1;
+								if (a.name && b.name) return a.name === b.name ? 0 : (dir ? (a.name < b.name ? -1 : 1) : (a.name > b.name ? -1 : 1));
+								else if (a.name || b.name) return (dir ? a.name && !b.name : !a.name && b.name) ? 1 : -1;
+								return a.tagName === b.tagName ? 0 : (dir ? (a.tagName < b.tagName ? -1 : 1) : (a.tagName > b.tagName ? -1 : 1));
+							}
+							else if (window['jQuery'] && a instanceof jQuery && b instanceof jQuery) {
+								var a0 = a.get(0), b0 = b.get(0);
+								if (a0.id && b0.id) return a0.id === b0.id ? 0 : (dir ? (a0.id < b0.id ? -1 : 1) : (a0.id > b0.id ? -1 : 1));
+								else if (a0.id || b0.id) return (dir ? a0.id && !b0.id : !a0.id && b0.id) ? 1 : -1;
+								if (a0.name && b0.name) return a0.name === b0.name ? 0 : (dir ? (a0.name < b0.name ? -1 : 1) : (a0.name > b0.name ? -1 : 1));
+								else if (a0.name || b0.name) return (dir ? a0.name && !b0.name : !a0.name && b0.name) ? 1 : -1;
+								return a0.tagName === b0.tagName ? 0 : (dir ? (a0.tagName < b0.tagName ? -1 : 1) : (a0.tagName > b0.tagName ? -1 : 1));
+							}
+							else if (/(array){2}/ig.test(cInstance)) {
+								var aFirst = Object.keys(a)[0],
+									bFirst = Object.keys(b)[0];
+								if (aFirst === bFirst) {
+									aFirst = a[aFirst];
+									bFirst = b[bFirst];
+									if (aFirst === bFirst) return 0;
+									var arrFirst = [aFirst, bFirst],
+										firstSorted = arrFirst.smartSort(dir); // smartSortInit.apply(arrFirst, [dir]);
+									return aFirst == firstSorted[0] ? -1 : 1;
+								}
+								return dir ? (aFirst < bFirst ? -1 : 1) : (aFirst > bFirst ? -1 : 1);
+							}
+							else if (/(object){2}/ig.test(cInstance)) {
+								if (window['jQuery']) {
+									if (a instanceof jQuery) return -1;
+									if (b instanceof jQuery) return 1;
+								}
+								
+								//	sort inner arrays if found
+								for (var k in a) if (a[k] instanceof Array) a[k].smartSort(dir);
+								for (var k in b) if (b[k] instanceof Array) b[k].smartSort(dir);
+								
+								//	sort object
+								var objA = [], objB = [];
+								
+								for (var k in a) { if (a.hasOwnProperty(k)) objA[k] = a[k], delete a[k]; }
+								for (var k in b) { if (b.hasOwnProperty(k)) objB[k] = b[k], delete b[k]; }
+								if (dir == false) 
+								
+								objA.smartSort(dir);
+								objB.smartSort(dir);
+								
+								for (var k in objA) a[k] = objA[k];
+								for (var k in objB) b[k] = objB[k];
+								
+								var aKeys = JSON.stringify(Object.keys(a)).replace(/\[|"|\]|,/g, '').toLowerCase(),
+									bKeys = JSON.stringify(Object.keys(b)).replace(/\[|"|\]|,/g, '').toLowerCase();
+								
+								if (aKeys !== bKeys) return dir ? (aKeys < bKeys ? -1 : 1) : (aKeys > bKeys ? -1 : 1);
+								else {	//	evaluate based on values
+									var aValues = '', bValues = '';
+									
+									//	try by number values
+									for (var k in a) if (Object.prototype.hasOwnProperty.call(a, k) && /number/.test(typeof a[k])) aValues += a[k];
+									for (var k in b) if (Object.prototype.hasOwnProperty.call(b, k) && /number/.test(typeof b[k])) aValues += b[k];
+									if (aValues && bValues) {
+										aValues = parseFloat(aValues);
+										bValues = parseFloat(bValues);
+										return aValues === bValues ? 0 : (dir ? (aValues < bValues ? -1 : 1) : (aValues > bValues ? -1 : 1));
+									}
+									
+									//	try by string values
+									for (var k in a) if (Object.prototype.hasOwnProperty.call(a, k) && /string/.test(typeof a[k])) aValues += a[k].toLowerCase();
+									for (var k in b) if (Object.prototype.hasOwnProperty.call(b, k) && /string/.test(typeof b[k])) aValues += b[k].toLowerCase();
+									if (aValues && bValues) return aValues === bValues ? 0 : (dir ? (aValues < bValues ? -1 : 1) : (aValues > bValues ? -1 : 1));
+								}
+								
+								//	falback
+								//	TODO: break this down to further above cause
+								var aFirst = Object.keys(a)[0],
+									bFirst = Object.keys(b)[0];
+								
+								if (void 0 != aFirst && aFirst === bFirst) {
+									aFirst = a[aFirst];
+									bFirst = b[bFirst];
+									if (aFirst === bFirst) return 0;
+									var firstSorted = [aFirst, bFirst].smartSort(dir);
+									return aFirst == firstSorted[0] ? -1 : 1;
+								}
+								return dir ? (aFirst < bFirst ? -1 : 1) : (aFirst > bFirst ? -1 : 1);
+							}
+							
+						}
+						//	Organize as [DATE, ELEMENT, ARRAY, OBJECT, NAN|NULL|UNDEFINED]
+						if (/Date/ig.test(cInstance)) return /Date/ig.test(aInstance) ? -1 : 1;
+						if (/Element/ig.test(cInstance)) return /Element/ig.test(aInstance) ? -1 : 1;
+						//	quick jQuery check to organize jQuery elements right behind standard elements
+						if (window['jQuery'] && (a instanceof jQuery || b instanceof jQuery)) return a instanceof jQuery ? -1 : 1;
+						if (/Array/ig.test(cInstance)) return /Array/ig.test(aInstance) ? -1 : 1;
+						aInstance = aInstance.toLowerCase();
+						bInstance = bInstance.toLowerCase();
+						return aInstance === bInstance ? 0 : (dir ? (aInstance < bInstance ? -1 : 1) : (aInstance > bInstance ? -1 : 1));
+						break;
+				}
+			}
+			else {	//	Organize as [NUMBER, STRING, BOOLEAN, DATE, ELEMENT, ARRAY, OBJECT, NAN|NULL|UNDEFINED]
+				if (/number/ig.test(cType)) return /number/ig.test(aType) ? -1 : 1;
+				if (/string/ig.test(cType)) return /string/ig.test(aType) ? -1 : 1;
+				if (/boolean/ig.test(cType)) return /boolean/ig.test(aType) ? -1 : 1;
+				if (/object/ig.test(cType)) {
+					//	TODO: think up every possible test to ensure this is never reached, as it shouldnt be
+					if (window['console'] && console['log']) {
+						console.log(new Array(50).join('-') + 'H I T' + new Array(50).join('-'));
+						console.log(new Array(50).join('-') + 'H I T' + new Array(50).join('-'));
+						console.log(new Array(50).join('-') + 'H I T' + new Array(50).join('-'));
+					}
+					if (a instanceof Date || b instanceof Date) return a instanceof Date ? -1 : 1;
+					if (a instanceof Element || b instanceof Element) return a instanceof Element ? -1 : 1;
+					if (a instanceof Array || b instanceof Array) return a instanceof Array ? -1 : 1;
+					return /object/ig.test(aType) ? -1 : 1;
+				}
+				if (/function/ig.test(cType)) return /function/ig.test(aType) ? -1 : 1;
+				else return -1;
+			}
+		}
+		
+		// ss.dir = dir;
+		/* console.log(dir); */
+		return this.sort(function(a,b){return ss(a,b,$this.dir)});
+	}
+	
+	if (Object['defineProperty'] && !Array.prototype['smartSort']) {
+		Object.defineProperty(Array.prototype, 'smartSort', { value: smartSort });
+	}
+	
+	//	add to jQuery if available
+	if (window['jQuery']) {
+		jQuery.smartSort = function() {
+			dir = void 0;
+			var args = [], arr;
+			jQuery.each(arguments, function(i,v) {
+				if (!arr && typeof v == 'object' && v instanceof Array) arr = v;
+				else args.push(v);
+			});
+			//	DOES NOT CHANGE ORIGINAL ARRAY	
+			//	This is so the user can simply use jQuery to GET a sorted array without manipulating original,
+			//	since the original will already have option of array.smartSort
+			if (arr) return Array.prototype.smartSort.apply($.extend(true, [], arr), args);
+			return void 0;
+		}
+	}
+	
+	return  Array.smartSort;
+})();
 ;(function() {	//	Array.unique	//	removes duplicaates from an array. * modifies original array
 	var name = "unique";
 	function unique() {
@@ -472,6 +692,25 @@
 	ele.hasScroll('y') || ele.hasScroll('vertical'); // will return bool based on if vertical bar visible
 	*/
 })();
+;(function() {	//	Element.textContent.selector
+	function selectText() {
+		if (document.body.createTextRange) {
+			var r = document.body.createTextRange();
+			r.moveToElement(this);
+			r.select();
+		}
+		else if (window.getSelection) {
+			var s = window.getSelection(),
+				r = document.createRange();
+				r.selectNodeContents(this);
+				s.removeAllRanges();
+				s.addRange(r);
+		}
+		return this.textContent;
+	}
+	Object['defineProperty'] && !Element.prototype.hasOwnProperty('selectText')
+		? Object.defineProperty(Element.prototype, 'selectText', { value: selectText }) : Element.prototype['selectText'] = selectText;
+})();
 
 /**	Math[extensions]()
  *	Math.average()
@@ -734,6 +973,87 @@
 	}
 })(Math);
 
+/**	navigator[extensions]()
+ *	navigator[browser|mobile|version]
+ **/
+;(function() {
+	if (navigator) {
+		navigator.browser = void 0;
+		navigator.version = void 0;
+		navigator.mobile = !1;
+		
+		if (navigator['userAgent']) {
+			navigator.webkit = /WebKit/i.test(navigator.userAgent);
+			
+			if (/Sony[^ ]*/i.test(navigator.userAgent)) navigator.mobile = 'Sony';
+			else if (/RIM Tablet/i.test(navigator.userAgent)) navigator.mobile = 'RIM Tablet';
+			else if (/BlackBerry/i.test(navigator.userAgent)) navigator.mobile = 'BlackBerry';
+			else if (/iPhone/i.test(navigator.userAgent)) navigator.mobile = 'iPhone';
+			else if (/iPad/i.test(navigator.userAgent)) navigator.mobile = 'iPad';
+			else if (/iPod/i.test(navigator.userAgent)) navigator.mobile = 'iPod';
+			else if (/Opera Mini/i.test(navigator.userAgent)) navigator.mobile = 'Opera Mini';
+			else if (/IEMobile/i.test(navigator.userAgent)) navigator.mobile = 'IEMobile';
+			else if (/BB[0-9]{1,}; Touch/i.test(navigator.userAgent)) navigator.mobile = 'BlackBerry';
+			else if (/Nokia/i.test(navigator.userAgent)) navigator.mobile = 'Nokia';
+			else if (/Android/i.test(navigator.userAgent)) navigator.mobile = 'Android';
+			
+			if (/MSIE|Trident/i.test(navigator.userAgent)) {
+				navigator.browser = "MSIE";
+				navigator.version = /MSIE/i.test(navigator.userAgent) && parseFloat(navigator.userAgent.split("MSIE")[1].replace(/[^0-9\.]/g, '')) > 0 ? parseFloat(navigator.userAgent.split("MSIE")[1].replace(/[^0-9\.]/g, '')) : "Edge";
+				if (/Trident/i.test(navigator.userAgent) && /rv:([0-9]{1,}[\.0-9]{0,})/.test(navigator.userAgent))
+					navigator.version = parseFloat(navigator.userAgent.match(/rv:([0-9]{1,}[\.0-9]{0,})/)[1].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/Chrome/.test(navigator.userAgent)) {
+				navigator.browser = "Chrome";
+				navigator.version = parseFloat(navigator.userAgent.split("Chrome/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/Opera/.test(navigator.userAgent)) {
+				navigator.browser = "Opera";
+				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/Kindle|Silk|KFTT|KFOT|KFJWA|KFJWI|KFSOWI|KFTHWA|KFTHWI|KFAPWA|KFAPWI/i.test(navigator.userAgent)) {
+				navigator.mobile = 'Kindle';
+				if (/Silk/i.test(navigator.userAgent)) {
+					navigator.browser = "Silk";
+					navigator.version = parseFloat(navigator.userAgent.split("Silk/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+				}
+				else if (/Kindle/i.test(navigator.userAgent) && /Version/i.test(navigator.userAgent)) {
+					navigator.browser = "Kindle";
+					navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+				}
+			}
+			else if (/BlackBerry/.test(navigator.userAgent)) {
+				navigator.browser = "BlackBerry";
+				navigator.version = parseFloat(navigator.userAgent.split("/")[1].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/PlayBook/.test(navigator.userAgent)) {
+				navigator.browser = "PlayBook";
+				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/BB[0-9]{1,}; Touch/.test(navigator.userAgent)) {
+				navigator.browser = "Blackberry";
+				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/Android/.test(navigator.userAgent)) {
+				navigator.browser = "Android";
+				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/Safari/.test(navigator.userAgent)) {
+				navigator.browser = "Safari";
+				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/Firefox/.test(navigator.userAgent)) {
+				navigator.browser = "Mozilla";
+				navigator.version = parseFloat(navigator.userAgent.split("Firefox/")[1].replace(/[^0-9\.]/g, ''));
+			}
+			else if (/Nokia/.test(navigator.userAgent)) {
+				navigator.browser = "Nokia";
+				navigator.version = parseFloat(navigator.userAgent.split('Browser')[1].replace(/[^0-9\.]/g, ''));
+			}
+		}
+	}
+})();
+
 /**	Object[extensions]()
  *	Object.join()
  **/
@@ -805,8 +1125,29 @@
 		catch(e) { if (this['toString']) r = this.toString().slice(8, -1); }
 		return !toLower ? r : r.toLowerCase();
 	}
-	//Object['defineProperty'] && !Object.prototype.hasOwnProperty('realType')
-	//	? Object.defineProperty(Object.prototype, 'realType', { value: realType }) : Object.prototype['realType'] = realType;
+	Object['defineProperty'] && !Object.prototype.hasOwnProperty('realType')
+		? Object.defineProperty(Object.prototype, 'realType', { value: realType }) : Object.prototype['realType'] = realType;
+})();
+;(function() {	//	Object.length
+	function realType(obj, toLower) {
+		var r = typeof obj;
+		try {
+			if (window.hasOwnProperty('jQuery') && obj.constructor && obj.constructor == jQuery) r = 'jQuery';
+			else r = obj.constructor && obj.constructor.name ? obj.constructor.name : Object.prototype.toString.call(obj).slice(8, -1);
+		}
+		catch(e) { if (obj['toString']) r = obj.toString().slice(8, -1); }
+		return !toLower ? r : r.toLowerCase();
+	}
+	function length() {
+		if (/object/i.test(realType(this, true))) {
+			var i = 0;
+			for (var x in this) if (this.hasOwnProperty(x)) i++;
+			return i;
+		}
+		if (/boolean/i.test(realType(this, true))) return this.valueOf() ? 1 : 0;
+	}
+	Object['defineProperty'] && !Object.prototype.hasOwnProperty('length')
+		? Object.defineProperty(Object.prototype, 'length', { get: length }) : Object.prototype.__defineGetter__('length', length);
 })();
 
 /**	RegExp[extensions]()
@@ -839,13 +1180,18 @@
 		var a = Array.prototype.slice.call(arguments, 0);
 		return regExpEscape.apply(this, a)
 	}
-	Object.defineProperty && !RegExp.__proto__.hasOwnProperty(name)
-		? Object.defineProperty(RegExp.__proto__, name, { value: method }) : RegExp.__proto__[name] = method;
+	Object.defineProperty && !RegExp.prototype.hasOwnProperty(name)
+		? Object.defineProperty(RegExp.prototype, name, { value: method }) : RegExp.prototype[name] = method;
 	/** Example Use:
 	 *	var a  = ")(*",
 	 *		r = new RegExp(RegExp.escape(a), 'g');
 	 *	console.log({ 'string': a, 'regex': r, 'test': r.test(a), 'matach': a.match(r) });
 	 **/
+})();
+;(function() {	//	RegExp.escape	//
+	function regexURL() { return /^(([^\:\/\?\#]+)\:)?(\/\/([^\/\?\#]*))?([^\?\#]*)(\?([^\#]*))?(\#(.*))?/; }
+	Object.defineProperty && !RegExp.hasOwnProperty('url')
+		? Object.defineProperty(RegExp, 'url', { get: regexURL }) : RegExp.prototype__defineGetter__('url', regexURL);
 })();
 
 /**	String[extensions]()
@@ -926,10 +1272,9 @@
 	window.hasOwnProperty("matchUrl")||(window.matchUrl=matchUrl);
 	
 	//	add as method of a String ( exp: "string".matchUrl(); )
-	var name = 'matchUrl';
 	function method() { return matchUrl(this.valueOf()); }
-	Object['defineProperty'] && !String.prototype.hasOwnProperty(name)
-		? Object.defineProperty(String.prototype, name, { value: method }) : String.prototype[name] = method;
+	Object['defineProperty'] && !String.prototype.hasOwnProperty('matchUrl')
+		? Object.defineProperty(String.prototype, 'matchUrl', { value: method }) : String.prototype['matchUrl'] = method;
 	
 	//	add as a jQuery extension
 	if (window.hasOwnProperty('jQuery')) {
@@ -1393,6 +1738,14 @@
 
 /***	*M*E*T*H*O*D*S*		***/
 
+/**	delay(ms)
+ *	
+ **/
+;(function() {	//	delay(ms)
+	function delay(secs, ASms) { if (ASms!==true) secs *= 1000; var st = Date.now(); while (Date.now() - st < secs){}; }
+	window.hasOwnProperty("delay")||(window.delay=delay);
+})();
+
 /**	winFocus([MIXED])
  *	This helps to create a cross-browser way of creating callback methods
  *	on the window focus and blur events, without being affected by leaving
@@ -1726,6 +2079,346 @@ if (window.hasOwnProperty('jQuery')) {
 				return $.outerHTML.apply($, args);
 			}
 		});
+	})(jQuery);
+	
+	(function($) {	//	$.date([num|str|date, [addYears, addMonths, addWeeks, addDays, addHours, addMinutes, addSeconds, getDayName, getMonthName, getWeek, stdTimezoneOffset, dst, format]])
+		$.extend({
+			date: function() {
+				var args = Array.prototype.slice.call(arguments, 0);
+				//	arg 0 is nothing
+				if (!args.length) {
+					return $.extend(true, new Date(), $.date.methods);
+				}
+				else if (args.length == 1) {
+					if ( (typeof args[0] == 'number') || (typeof args[0] == 'string' && !isNaN(Date.parse(args[0]))) || (args[0] instanceof Date) ) return $.extend(true, new Date(args[0]), $.date.methods);
+					if (typeof args[0] == 'string') {	//	arg 0 is string and may be direct call to method)
+						var d = new Date();
+						args.unshift(d);
+						return $.date.apply(this, args);
+					}
+				}
+				else if (args.length > 1) {
+					
+					// arg 0 is a numeric value (may be milliseconds or year[if is year, arg 1 must be month])
+					if (typeof args[0] == 'number') {
+						var d;
+						if (typeof args[1] !== 'number') {	//	is milliseconds
+							d = new Date(args[0]);
+							args = Array.prototype.slice.call(arguments, 1);
+						}
+						else {
+							var dv = [];	//	date values
+							for (var i=0;i<args.length;i++) {
+								if (typeof args[i] !== 'number') break;
+								dv.push(args[i]);
+							}
+							d = new Date(dv);
+							args = Array.prototype.slice.call(arguments, i);
+						}
+						args.unshift(d);
+						return $.date.apply(this, args);
+					}
+					//	arg 0 is string (may be date value or call to method)
+					if (typeof args[0] == 'string') {
+						var d = new Date();
+						if (!isNaN(Date.parse(args[0]))) {	//	arg 0 is date string
+							d = new Date(args[0]);
+							args = Array.prototype.slice.call(arguments, 1);
+						}
+						args.unshift(d);
+						return $.date.apply(this, args);
+					}
+					// arg 0 is a date object
+					if (args[0] instanceof Date) {
+						var d = $.date(args[0]);
+						if (typeof args[1] == 'string') {
+							if (d[args[1]]) {	//	is method call
+								var m = args[1];
+								args = args.slice(2);
+								return d[m].apply(d, args);
+							}
+							else if (/compound|constants|pretty/.test(args[1])) {
+								
+							}
+							//console.log("\t\t\t", [d, 'format'].concat(args.slice(1)))
+							return $.date.apply(this, [d, 'format'].concat(args.slice(1)));
+						}
+						
+					}
+				}
+				throw new Error("Incorrect Parameters:\t" + JSON.stringify(args));
+			}
+		});
+		$.date.methods = {
+			'addYears': function(v) { this.setFullYear(this.getFullYear() + parseFloat(v)); return $.date(this); },
+			'addMonths': function(v) { this.setMonth(this.getMonth() + parseFloat(v)); return $.date(this); },
+			'addWeeks': function(v) { this.addDays(7 * parseFloat(v)); return $.date(this); },
+			'addDays': function(v) { this.setDate(this.getDate() + parseFloat(v)); return $.date(this); },
+			'addHours': function(v) { this.setHours(this.getHours() + parseFloat(v)); return $.date(this); },
+			'addMinutes': function(v) { this.setMinutes(this.getMinutes() + parseFloat(v)); return $.date(this); },
+			'addSeconds': function(v) { this.setSeconds(this.getSeconds() + parseFloat(v)); return $.date(this); },
+			'getDayName': function(shortForm) {
+				var days = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
+				return shortForm ? days[this.getDay()].substr(0,3) : days[this.getDay()];
+			},
+			'getMonthName': function(shortForm) {
+				var months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+				return shortForm ? months[this.getMonth()].substr(0,3) : months[this.getMonth()];
+			},
+			'getWeek': function() {
+				var a = new Date(this.getFullYear(), 0, 1);
+				return Math.ceil(((this - a) / 864E5 + a.getDay() + 1) / 7);
+			},
+			'stdTimezoneOffset': function() {
+				var a = new Date(this.getFullYear(), 0, 1),
+					b = new Date(this.getFullYear(), 6, 1);
+				return Math.max(a.getTimezoneOffset(), b.getTimezoneOffset());
+			},
+			'dst': function() {
+				return this.getTimezoneOffset() < this.stdTimezoneOffset();
+			}
+		}
+		$.date.formats = {
+			/*	DAY	*/
+			'd': function() { var a = this.getDate(); return a > 9 ? a : '0' + a; },
+			'D': function() { return getDayName(this, true); },
+			'j': function() { return this.getDate(); },
+			'l': function() { return getDayName(this); },
+			'N': function() { return this.getDay() + 1; },
+			'S': function() { var a = this.getDate(); if (/1/.test(parseInt((a + "").charAt(0)))) return "th"; a = parseInt((a + "").charAt(1)); return 1 == a ? "st" : 2 == a ? "nd" : 3 == a ? "rd" : "th" },
+			'w': function() { return this.getDay(); },
+			'z': function() { return Math.round(Math.abs((this.getTime() - new Date('1/1/' + this.getFullYear()).getTime())/(8.64e7))); },
+			/*	WEEK	*/
+			'W': function() { return getWeek(this); },
+			/*	MONTH	*/
+			'F': function() { return getMonthName(this); },
+			'm': function() { var a = this.getMonth() + 1; return a > 9 ? a : '0' + a; },
+			'M': function() { return getMonthName(this, true); },
+			'n': function() { return this.getMonth() + 1; },
+			't': function() { return new Date(this.getFullYear(), this.getMonth()+1, 0).getDate() },
+			/*	YEAR	*/
+			'L': function() { var a = this.getFullYear(); return 0 == a % 4 && 0 != a % 100 || 0 == a % 400; },
+			'o': function() { return parseInt(this.getFullYear()); },	//	todo: base on week's parent year
+			'Y': function() { return parseInt(this.getFullYear()); },
+			'y': function() { return parseInt((this.getFullYear()+'').substr(-2)); },
+			/*	TIME	*/
+			'a': function() { return this.getHours() >= 12 ? "pm" : "am"; },
+			'A': function() { return this.getHours() >= 12 ? "PM" : "AM"; },
+			'B': function() { return "@"+("00"+Math.floor((((this.getHours()+1)%24*60+this.getMinutes())*60+this.getSeconds()+(this.getMilliseconds()*0.001))/86.4)).slice(-3); },
+			'g': function() { var a = this.getHours(); return a == 0 ? 12 : a <= 12 ? a : a - 12; },	//	12-hour format of an hour without leading zeros
+			'G': function() { return this.getHours(); },	//	24-hour format of an hour without leading zeros
+			'h': function() { var a = this.getHours(); a = a <= 12 ? a : a - 12; return a == 0 ? 12 : a > 9 ? a : '0' + a; },	//		12-hour format of an hour with leading zeros
+			'H': function() { var a = this.getHours(); return a > 9 ? a : '0' + a; },	//		24-hour format of an hour with leading zeros
+			'i': function() { var a = this.getMinutes(); return a > 9 ? a : '0' + a; },	//	Minutes with leading zeros
+			's': function() { var a = this.getSeconds(); return a > 9 ? a : '0' + a; },	//	Seconds, with leading zeros
+			'u': function() { return this.getMilliseconds(); },	//	this is NOT microseconds ... it's JS :P,
+			/*	TIMEZONE	*/
+			'e': function() { var a = this.toString().match(/ ([A-Z]{3,4})([-|+]?\d{4})/); return a.length > 1 ? a[1] : ''; },
+			'I': function() {
+				var a = new Date(this.getFullYear(), 0, 1),
+					b = new Date(this.getFullYear(), 6, 1),
+					c = Math.max(a.getTimezoneOffset(), b.getTimezoneOffset());
+				return this.getTimezoneOffset() < c ? 1 : 0;
+			},
+			'O': function() { var a = this.toString().match(/ ([A-Z]{3,4})([-|+]?\d{4})/); return a.length > 2 ? a[2] : ''; },
+			'P': function() { var a = this.toString().match(/ ([A-Z]{3,4})([-|+]?\d{4})/); return a.length > 2 ? a[2].substr(0,3) + ':' + a[2].substr(3,2) : ''; },
+			'T': function() { return this.toLocaleString('en', {timeZoneName:'short'}).split(' ').pop(); },	//	may not be reliable on Apple Systems	//	NOTE: Apple Sux
+			'Z': function() { return this.getTimezoneOffset() * 60; },
+			/*	FULL DATE/TIME	*/
+			'c': function() { return addHours(new Date(this), -(this.getTimezoneOffset() / 60)).toISOString(); },
+			'r': function() { return addHours(new Date(this), -(this.getTimezoneOffset() / 60)).toISOString(); },
+			'U': function() { return this.getTime() / 1000 | 0; }
+		};
+		$.date.compound = {
+			'commonLogFormat': 'd/M/Y:G:i:s',
+			'exif': 'Y:m:d G:i:s',
+			'isoYearWeek': 'Y\\WW',
+			'isoYearWeek2': 'Y-\\WW',
+			'isoYearWeekDay': 'Y\\WWj',
+			'isoYearWeekDay2': 'Y-\\WW-j',
+			'mySQL': 'Y-m-d h:i:s',
+			'postgreSQL': 'Y.z',
+			'postgreSQL2': 'Yz',
+			'soap': 'Y-m-d\\TH:i:s.u',
+			'soap2': 'Y-m-d\\TH:i:s.uP',
+			'unixTimestamp': '@U',
+			'xmlrpc': 'Ymd\\TG:i:s',
+			'xmlrpcCompact': 'Ymd\\tGis',
+			'wddx': 'Y-n-j\\TG:i:s'
+		};
+		$.date.constants = {
+			'AMERICAN': 'F j, Y',
+			'AMERICANSHORT': 'm/d/Y',
+			'AMERICANSHORTWTIME': 'm/d/Y h:i:sA',
+			'ATOM': 'Y-m-d\\TH:i:sP',
+			'COOKIE': 'l, d-M-Y H:i:s T',
+			'EUROPEAN': 'j F Y',
+			'EUROPEANSHORT': 'd.m.Y',
+			'EUROPEANSHORTWTIME': 'd.m.Y H:i:s',
+			'ISO8601': 'Y-m-d\\TH:i:sO',
+			'LEGAL': 'j F Y',
+			'RFC822': 'D, d M y H:i:s O',
+			'RFC850': 'l, d-M-y H:i:s T',
+			'RFC1036': 'D, d M y H:i:s O',
+			'RFC1123': 'D, d M Y H:i:s O',
+			'RFC2822': 'D, d M Y H:i:s O',
+			'RFC3339': 'Y-m-d\\TH:i:sP',
+			'RSS': 'D, d M Y H:i:s O',
+			'W3C': 'Y-m-d\\TH:i:sP'
+		};
+		$.date.pretty = {
+			'pretty-a': 'g:i.sA l jS \\o\\f F, Y',
+			'pretty-b': 'g:iA l jS \\o\\f F, Y',
+			'pretty-c': 'n/d/Y g:iA',
+			'pretty-d': 'n/d/Y',
+			'pretty-e': 'F jS - g:ia',
+			'pretty-f': 'g:iA',
+			'pretty-g': 'F jS, Y',
+			'pretty-h': 'F jS, Y g:mA'
+		};
+		$.date.methods.format = function(str, utc) {
+			if (str) {
+				if (str == 'compound') {
+					if (utc === false) return this.format.compound;
+					var r = {};
+					for (var x in $.date.compound) r[x] = this.format($.date.compound[x]);
+					return r;
+				}
+				else if ($.date.compound[str]) return this.format($.date.compound[str], utc);
+				if (str == 'constants') {
+					if (utc === false) return this.format.constants;
+					var r = {};
+					for (var x in $.date.constants) r[x] = this.format($.date.constants[x]);
+					return r;
+				}
+				else if ($.date.constants[str]) return this.format($.date.constants[str], utc);
+				if (str == 'pretty') {
+					if (utc === false) return this.format.pretty;
+					var r = {};
+					for (var x in $.date.pretty) r[x] = this.format($.date.pretty[x]);
+					return r;
+				}
+				else if ($.date.pretty[str]) return this.format($.date.pretty[str], utc);
+				var ret = str.split(''), lc = '';
+				for (var x in ret) {
+					var c = ret[x];
+					if ((c && /[a-z]/i.test(c)) && !(/\\/.test(lc + c))) {
+						var rx = new RegExp(c, 'g');
+						ret[x] = $.date.formats[c] ? $.date.formats[c].apply(this) : c;
+					}
+					lc = ret[x];
+				}
+				return ret.join('').replace(/\\/g, '');
+			}
+			return str;
+		}
+	})(jQuery);
+	
+	(function($) {	//	$.jQRSS()
+		$.extend({  
+			jQRSS: function(rss, options, func) {
+				if (arguments.length <= 0) return false;
+				
+				var str, obj, fun;
+				for (i=0;i<arguments.length;i++) {
+					switch(typeof arguments[i]) {
+						case "string":
+							str = arguments[i];
+							break;
+						case "object":
+							obj = arguments[i];
+							break;
+						case "function":
+							fun = arguments[i];
+							break;
+					}
+				}
+				
+				if (str == null || str == "") {
+					if (!obj['rss']) return false;
+					if (obj.rss == null || obj.rss == "") return false;
+				}
+				
+				var o = $.extend(true, {}, $.jQRSS.defaults);
+				
+				if (typeof obj == "object") {
+					if ($.jQRSS.methods.getObjLength(obj) > 0) {
+						o = $.extend(true, o, obj);
+					}
+				}
+				
+				if (str != "" && !o.rss) o.rss = str;
+				o.rss = escape(o.rss);
+				
+				var gURL = $.jQRSS.props.gURL 
+					+ $.jQRSS.props.type 
+					+ "?v=" + $.jQRSS.props.ver
+					+ "&q=" + o.rss
+					+ "&callback=" + $.jQRSS.props.callback;
+				
+				var ajaxData = {
+						num: o.count,
+						output: o.output
+					};
+				
+				if (o.historical) ajaxData.scoring = $.jQRSS.props.scoring;
+				if (o.userip != null) ajaxData.scoring = o.userip;
+				
+				$.ajax({
+					url: gURL,
+					beforeSend: function (jqXHR, settings) { 
+						try {
+							console.log(new Array(30).join('-'), "REQUESTING RSS XML", new Array(30).join('-')); 
+							console.log({ ajaxData: ajaxData, ajaxRequest: settings.url, jqXHR: jqXHR, settings: settings, options: o }); 
+							console.log(new Array(80).join('-')); 
+						} catch(err) {  }
+					},
+					dataType: o.output != "xml" ? "json" : "xml",
+					data: ajaxData,
+					type: "GET",
+					xhrFields: { withCredentials: true },
+					error: function (jqXHR, textStatus, errorThrown) { return new Array("ERROR", { jqXHR: jqXHR, textStatus: textStatus, errorThrown: errorThrown } ); },
+					success: function (data, textStatus, jqXHR) {  
+						var f = data['responseData'] ? data.responseData['feed'] ? data.responseData.feed : null : null,
+							e = data['responseData'] ? data.responseData['feed'] ? data.responseData.feed['entries'] ? data.responseData.feed.entries : null : null : null
+						try {
+							console.log(new Array(30).join('-'), "SUCCESS", new Array(30).join('-'));
+							console.log({ data: data, textStatus: textStatus, jqXHR: jqXHR, feed: f, entries: e });
+							console.log(new Array(68).join('-'));
+						} catch(err) {  }
+						
+						if (fun) {
+							return fun.call(this, data['responseData'] ? data.responseData['feed'] ? data.responseData.feed : data.responseData : null);
+						}
+						else {
+							return { data: data, textStatus: textStatus, jqXHR: jqXHR, feed: f, entries: e };
+						}
+					}
+				});
+			}
+		});
+		$.jQRSS.props = {
+			callback: "?",
+			gURL: "http://ajax.googleapis.com/ajax/services/feed/",
+			scoring: "h",
+			type: "load",
+			ver: "1.0"
+		};
+		$.jQRSS.methods = {
+			getObjLength: function(obj) {
+				if (typeof obj != "object") return -1;
+				var objLength = 0;
+				$.each(obj, function(k, v) { objLength++; })
+				return objLength;
+			}
+		};
+		$.jQRSS.defaults = {
+			count: "10", // max 100, -1 defaults 100
+			historical: false,
+			output: "json", // json, json_xml, xml
+			rss: null,
+			userip: null
+		};
 	})(jQuery);
 	
 	/*	Require jQuery UI	*/
