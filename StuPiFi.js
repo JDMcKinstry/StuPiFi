@@ -712,6 +712,60 @@
 		? Object.defineProperty(Element.prototype, 'selectText', { value: selectText }) : Element.prototype['selectText'] = selectText;
 })();
 
+/**	location[extensions]()
+ *	location[]
+ **/
+;(function() {
+	if (location) {
+		var locExt = {
+				base: {
+					enumerable: true,
+					value: function() {
+						var a = location.pathname.match(/(?:\/){0,1}([^/]+\.[a-zA-Z0-9]+){0,1}$/i)[0],
+							b = location.origin + location.pathname;
+						if (a) b = b.replace(new RegExp(a.replace(".", "\\.")+'$'), '');
+						return b;
+					},
+					writable: false
+				},
+				control: {
+					enumerable: true,
+					value: function() {
+						var a = location.pathname.split("/");	//	location.pathname.match(/(?:\/)(([^/|.])*)$/);
+						if (a.length) 
+							for (var b=a.length-1;0<=b;b--)
+								if (0 == /[^.]+\.[^.]+$/.test(a[b])) return a[b];
+						return null;
+					},
+					writable: false
+				},
+				page: { enumerable: true, value: location.pathname.match(/(?!\/){0,1}([^/]+\.[a-zA-Z0-9]+){0,1}$/i)[0], writable: false },
+				params: {
+					enumerable: true,
+					value: function() {
+						var a = location.search ? location.search.replace('?', '').split('&') : [],
+							b = {};
+						if (a.length) {
+							for (var i=0;i<a.length;i++) {
+								var c = a[i].split('=');
+								b[c[0]] = c[1];
+							}
+						}
+						return b;
+					},
+					writable: false
+				}
+			}
+		
+		for (var x in locExt) {
+			try { if (locExt[x]['value'] && typeof locExt[x].value == 'function') locExt[x].value = locExt[x].value(); }
+			catch(e) { locExt[x].value = null; }
+			if (!location.hasOwnProperty(x)) Object.defineProperty(location, x, locExt[x]);
+		}
+	}
+})();
+location.control
+
 /**	Math[extensions]()
  *	Math.average()
  *	Math.difference()
@@ -973,85 +1027,107 @@
 	}
 })(Math);
 
-/**	navigator[extensions]()
- *	navigator[browser|mobile|version]
- **/
+/**	navigator [extended]
+ *	navigator[browser|mobile|version|webkit]
+ *	Simply extends Browsers navigator Object to include browser name, version number, and mobile type (if available).
+ *
+ *	@property {String} browser The name of the browser.
+ *	@property {Double} version The current Browser version number.
+ *	@property {String|Boolean} mobile Will be `false` if is not found to be mobile device. Else, will be best guess Name of Mobile Device (not to be confused with browser name)
+ *	@property {Boolean} webkit If is webkit or not.
+ */
 ;(function() {
-	if (navigator) {
-		navigator.browser = void 0;
-		navigator.version = void 0;
-		navigator.mobile = !1;
-		
-		if (navigator['userAgent']) {
-			navigator.webkit = /WebKit/i.test(navigator.userAgent);
-			
-			if (/Sony[^ ]*/i.test(navigator.userAgent)) navigator.mobile = 'Sony';
-			else if (/RIM Tablet/i.test(navigator.userAgent)) navigator.mobile = 'RIM Tablet';
-			else if (/BlackBerry/i.test(navigator.userAgent)) navigator.mobile = 'BlackBerry';
-			else if (/iPhone/i.test(navigator.userAgent)) navigator.mobile = 'iPhone';
-			else if (/iPad/i.test(navigator.userAgent)) navigator.mobile = 'iPad';
-			else if (/iPod/i.test(navigator.userAgent)) navigator.mobile = 'iPod';
-			else if (/Opera Mini/i.test(navigator.userAgent)) navigator.mobile = 'Opera Mini';
-			else if (/IEMobile/i.test(navigator.userAgent)) navigator.mobile = 'IEMobile';
-			else if (/BB[0-9]{1,}; Touch/i.test(navigator.userAgent)) navigator.mobile = 'BlackBerry';
-			else if (/Nokia/i.test(navigator.userAgent)) navigator.mobile = 'Nokia';
-			else if (/Android/i.test(navigator.userAgent)) navigator.mobile = 'Android';
-			
-			if (/MSIE|Trident/i.test(navigator.userAgent)) {
-				navigator.browser = "MSIE";
-				navigator.version = /MSIE/i.test(navigator.userAgent) && parseFloat(navigator.userAgent.split("MSIE")[1].replace(/[^0-9\.]/g, '')) > 0 ? parseFloat(navigator.userAgent.split("MSIE")[1].replace(/[^0-9\.]/g, '')) : "Edge";
-				if (/Trident/i.test(navigator.userAgent) && /rv:([0-9]{1,}[\.0-9]{0,})/.test(navigator.userAgent))
-					navigator.version = parseFloat(navigator.userAgent.match(/rv:([0-9]{1,}[\.0-9]{0,})/)[1].replace(/[^0-9\.]/g, ''));
+	function init() {
+		try {
+			if (navigator && navigator['userAgent']) {
+				navigator.browser = setBrowser();
+				navigator.mobile = setMobile();
+				navigator.version = setVersion();
+				navigator.webkit = setWebkit();
+				return true;
 			}
-			else if (/Chrome/.test(navigator.userAgent)) {
-				navigator.browser = "Chrome";
-				navigator.version = parseFloat(navigator.userAgent.split("Chrome/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/Opera/.test(navigator.userAgent)) {
-				navigator.browser = "Opera";
-				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/Kindle|Silk|KFTT|KFOT|KFJWA|KFJWI|KFSOWI|KFTHWA|KFTHWI|KFAPWA|KFAPWI/i.test(navigator.userAgent)) {
-				navigator.mobile = 'Kindle';
-				if (/Silk/i.test(navigator.userAgent)) {
-					navigator.browser = "Silk";
-					navigator.version = parseFloat(navigator.userAgent.split("Silk/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
-				}
-				else if (/Kindle/i.test(navigator.userAgent) && /Version/i.test(navigator.userAgent)) {
-					navigator.browser = "Kindle";
-					navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
-				}
-			}
-			else if (/BlackBerry/.test(navigator.userAgent)) {
-				navigator.browser = "BlackBerry";
-				navigator.version = parseFloat(navigator.userAgent.split("/")[1].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/PlayBook/.test(navigator.userAgent)) {
-				navigator.browser = "PlayBook";
-				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/BB[0-9]{1,}; Touch/.test(navigator.userAgent)) {
-				navigator.browser = "Blackberry";
-				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/Android/.test(navigator.userAgent)) {
-				navigator.browser = "Android";
-				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/Safari/.test(navigator.userAgent)) {
-				navigator.browser = "Safari";
-				navigator.version = parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/Firefox/.test(navigator.userAgent)) {
-				navigator.browser = "Mozilla";
-				navigator.version = parseFloat(navigator.userAgent.split("Firefox/")[1].replace(/[^0-9\.]/g, ''));
-			}
-			else if (/Nokia/.test(navigator.userAgent)) {
-				navigator.browser = "Nokia";
-				navigator.version = parseFloat(navigator.userAgent.split('Browser')[1].replace(/[^0-9\.]/g, ''));
+		} catch(err) {}
+		throw new Error("Browser does not support `navigator` Object |OR| has undefined `userAgent` property.");
+	}
+	
+	function setBrowser() {
+		try {
+			switch (true) {
+				case (/MSIE|Trident/i.test(navigator.userAgent)): return 'MSIE';
+				case (/Chrome/.test(navigator.userAgent)): return 'Chrome';
+				case (/Opera/.test(navigator.userAgent)): return 'Opera';
+				case (/Kindle|Silk|KFTT|KFOT|KFJWA|KFJWI|KFSOWI|KFTHWA|KFTHWI|KFAPWA|KFAPWI/i.test(navigator.userAgent)):
+					return (/Silk/i.test(navigator.userAgent)) ? 'Silk' : 'Kindle';
+				case (/BlackBerry/.test(navigator.userAgent)): return 'BlackBerry';
+				case (/PlayBook/.test(navigator.userAgent)): return 'PlayBook';
+				case (/BB[0-9]{1,}; Touch/.test(navigator.userAgent)): return 'Blackberry';
+				case (/Android/.test(navigator.userAgent)): return 'Android';
+				case (/Safari/.test(navigator.userAgent)): return 'Safari';
+				case (/Firefox/.test(navigator.userAgent)): return 'Mozilla';
+				case (/Nokia/.test(navigator.userAgent)): return 'Nokia';
 			}
 		}
+		catch(err) { console.debug("ERROR:setBrowser\t", err); }
+		return void 0;
 	}
+	
+	function setMobile() {
+		try {
+			switch (true) {
+				case (/Sony[^ ]*/i.test(navigator.userAgent)): return 'Sony';
+				case (/RIM Tablet/i.test(navigator.userAgent)): return 'RIM Tablet';
+				case (/BlackBerry/i.test(navigator.userAgent)): return 'BlackBerry';
+				case (/iPhone/i.test(navigator.userAgent)): return 'iPhone';
+				case (/iPad/i.test(navigator.userAgent)): return 'iPad';
+				case (/iPod/i.test(navigator.userAgent)): return 'iPod';
+				case (/Opera Mini/i.test(navigator.userAgent)): return 'Opera Mini';
+				case (/IEMobile/i.test(navigator.userAgent)): return 'IEMobile';
+				case (/BB[0-9]{1,}; Touch/i.test(navigator.userAgent)): return 'BlackBerry';
+				case (/Nokia/i.test(navigator.userAgent)): return 'Nokia';
+				case (/Android/i.test(navigator.userAgent)): return 'Android';
+			}
+		}
+		catch(err) { console.debug("ERROR:setMobile\t", err); }
+		return !1;
+	}
+	
+	function setVersion() {
+		try {	//	TODO: consider using end cap in regex such as RegExp(/ Firefox\/\d+(\.\d+){0,1}$/)
+			switch (true) {
+				case (/MSIE|Trident/i.test(navigator.userAgent)):
+					if (/Trident/i.test(navigator.userAgent) && /rv:([0-9]{1,}[\.0-9]{0,})/.test(navigator.userAgent)) return parseFloat(navigator.userAgent.match(/rv:([0-9]{1,}[\.0-9]{0,})/)[1].replace(/[^0-9\.]/g, ''));
+					return (/MSIE/i.test(navigator.userAgent) && parseFloat(navigator.userAgent.split("MSIE")[1].replace(/[^0-9\.]/g, '')) > 0) ? parseFloat(navigator.userAgent.split("MSIE")[1].replace(/[^0-9\.]/g, '')) : "Edge";
+				case (/Chrome/.test(navigator.userAgent)):
+					return parseFloat(navigator.userAgent.split("Chrome/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+				case (/Opera/.test(navigator.userAgent)):
+					return parseFloat(navigator.userAgent.split("Version/")[1].replace(/[^0-9\.]/g, ''));
+				case (/Kindle|Silk|KFTT|KFOT|KFJWA|KFJWI|KFSOWI|KFTHWA|KFTHWI|KFAPWA|KFAPWI/i.test(navigator.userAgent)):
+					if (/Silk/i.test(navigator.userAgent)) return parseFloat(navigator.userAgent.split("Silk/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+					else if (/Kindle/i.test(navigator.userAgent) && /Version/i.test(navigator.userAgent)) return parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+				case (/BlackBerry/.test(navigator.userAgent)):
+					return parseFloat(navigator.userAgent.split("/")[1].replace(/[^0-9\.]/g, ''));
+				case (/PlayBook/.test(navigator.userAgent)):
+				case (/BB[0-9]{1,}; Touch/.test(navigator.userAgent)):
+				case (/Safari/.test(navigator.userAgent)):
+					return parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+				case (/Firefox/.test(navigator.userAgent)):
+					return parseFloat(navigator.userAgent.split(/Firefox\//i)[1].replace(/[^0-9\.]/g, ''));
+				case (/Android/.test(navigator.userAgent)):
+					return parseFloat(navigator.userAgent.split("Version/")[1].split("Safari")[0].replace(/[^0-9\.]/g, ''));
+				case (/Nokia/.test(navigator.userAgent)):
+					return parseFloat(navigator.userAgent.split('Browser')[1].replace(/[^0-9\.]/g, ''));
+			}
+		}
+		catch(err) { console.debug("ERROR:setVersion\t", err); }
+		return void 0;
+	}
+	
+	function setWebkit() {
+		try { return /WebKit/i.test(navigator.userAgent); } catch(err) { console.debug("ERROR:setWebkit\t", err); }
+		return void 0;
+	}
+	
+	init();
 })();
 
 /**	Object[extensions]()
@@ -1200,7 +1276,7 @@
  *	String.reverse()
  *	String.similarTo()
  **/
-;(function() {	//	String.flip	//	?Flips text in string upside down
+;(function() {	//	String.flip	//	Flips text in string upside down
 	var flipTable = {
 		a: "\u0250",
 		b: "q",
@@ -1739,11 +1815,74 @@
 /***	*M*E*T*H*O*D*S*		***/
 
 /**	delay(ms)
- *	
+ *	Simple method for creating a pseudo delay when needed.
+ *
+ *	@param (Integer) secs Seconds to delay before allowing next line read.
+ *	@param (Boolean) Whether to read first argument as Seconds[!1] or Milliseconds[!0]
+ *
+ *	@example delay(2);console.debug('This will display after 2 seconds have passed');
  **/
 ;(function() {	//	delay(ms)
-	function delay(secs, ASms) { if (ASms!==true) secs *= 1000; var st = Date.now(); while (Date.now() - st < secs){}; }
+	function delay(secs, ASms) { !0 !== ASms && (secs *= 1E3); for (var a = Date.now(); Date.now() - a < secs;); }
 	window.hasOwnProperty("delay")||(window.delay=delay);
+})();
+
+/**	dump(varried)
+ *	Simple method for ensuring easy to read information in the console.
+ **/
+;(function() {
+	function realType(toLower) {
+		var r = typeof this;
+		try {
+			if (window.hasOwnProperty('jQuery') && this.constructor && this.constructor == jQuery) r = 'jQuery';
+			else r = this.constructor && this.constructor.name ? this.constructor.name : Object.prototype.toString.call(this).slice(8, -1);
+		}
+		catch(e) { if (this['toString']) r = this.toString().slice(8, -1); }
+		return !toLower ? r : r.toLowerCase();
+	}
+	
+	function logArgs() {
+		var args = Array.prototype.slice.call(arguments, 0);
+		for (var i=0;i<args.length;i++) {
+			var rt = realType.apply(args[i]),
+				color = function() {
+					switch (rt) {
+						case 'Array': return 'color: blue;';
+						case 'Boolean': return 'color: orange;';
+						case 'jQuery': return 'color: green;';
+						case 'Number': return 'color: red;';
+						case 'Object': return 'color: cyan;';
+						case 'String': return 'color: brown;';
+					}
+					return 'color: grey;';
+				}(),
+				tab = rt.length<7?"\t\t":"\t";
+			console.log("\t%c" + rt, color, tab, args[i]);
+		}
+	}
+	
+	function dump() {
+		var line50 = Array(50).join('-'),
+			strBegin = ' >' + line50 + '={ BEGIN DUMP }=' + line50 + '< ',
+			strEnd = ' >' + line50 + '={  END  DUMP }=' + line50 + '< ',
+			styles = [
+				'background: linear-gradient(to bottom, #9dd53a 0%,#a1d54f 50%,#80c217 51%,#7cbc0a 100%)'
+				, 'border: 1px solid #b8c6df'
+				, 'color: black'
+				, 'display: block'
+				, 'text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3)'
+				, 'box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 5px 3px -5px rgba(0, 0, 0, 0.5), 0 -13px 5px -10px rgba(255, 255, 255, 0.4) inset'
+				, 'line-height: 20px'
+				, 'text-align: center'
+				, 'font-weight: bold'
+			].join(';');
+		console.log('%c' + strBegin, styles);
+		logArgs.apply(this, arguments);
+		console.log('%c' + strEnd, styles);
+	}
+	
+	//	add as global variable
+	window.hasOwnProperty("dump")||(window.dump=dump);
 })();
 
 /**	winFocus([MIXED])
@@ -2059,7 +2198,97 @@
 /***	***	jQuery Extensions|Methods|Plugins	***	***/
 
 if (window.hasOwnProperty('jQuery')) {
-	(function($) {	//	$(ele).outerHTML();
+	;(function($) {	//	$(ele).childrenRange(MIXED VAR);
+		/**	$(ele).childrenRange(MIXED VAR);
+		 *	Select a range of children elements using either integers or string selectors.
+		 *
+		 *		With Int Params
+		 *	@param (Integer) arg1 The lowest child's index value
+		 *	@param (Integer) arg2 The highest child's index value (not required)
+		 *
+		 *		With String Params
+		 *	@param (String) arg1 jQuery string selector for first child sought
+		 *	@param (String) arg1 jQuery string selector for last child sought (Not Required)
+		 *	*/
+		function childrenRange() {
+			var $ele = arguments[0],
+				args = Array.prototype.slice.call(arguments, 1)
+			if ($ele && !($ele instanceof jQuery) && (typeof $ele == 'string' || $ele instanceof HTMLCollection || $ele instanceof Array)) $ele = $($ele);
+			if ($ele) {
+				var first = $ele.children(':first'),
+					last = $ele.children(':last');
+				if (!args.length) return $ele.children();
+				if (1 <= args.length) {
+					if ('number' == typeof args[0]) first = $ele.children().eq(args[0]);
+					else if ('string' == typeof args[0]) first = $ele.children(args[0]).first();
+				}
+				if (2 == args.length) {
+					if ('number' == typeof args[1]) last = $ele.children().eq(args[1]);
+					else if ('string' == typeof args[1]) last = $ele.children(args[1]).last();
+				}
+				return first.nextUntil(last).andSelf().add(last);
+			}
+			throw new Error("Invalid Parent Selector");
+		}
+		$.extend({ childrenRange: childrenRange });
+		$.fn.extend({
+			childrenRange: function() {
+				var args = [this];
+				if (arguments.length) for (x in arguments) args.push(arguments[x]);
+				return $.childrenRange.apply($, args);
+			}
+		});
+	})(jQuery);
+	
+	;(function($) {	//	$(ele).findInRange(MIXED VAR);
+		/**	$(ele).findInRange(MIXED VAR);
+		 *	Select a range of find elements using either integers or string selectors.
+		 *
+		 *		With Int Params
+		 *	@param (Integer) arg1 The lowest child's index value
+		 *	@param (Integer) arg2 The highest child's index value (not required)
+		 *
+		 *		With String Params
+		 *	@param (String) arg1 jQuery string selector for first child sought
+		 *	@param (String) arg1 jQuery string selector for last child sought (Not Required)
+		 *	*/
+		function findInRange() {
+			var $ele = arguments[0],
+				args = Array.prototype.slice.call(arguments, 1)
+			if ($ele && !($ele instanceof jQuery) && (typeof $ele == 'string' || $ele instanceof HTMLCollection || $ele instanceof Array)) $ele = $($ele);
+			if ($ele) {
+				var first = $ele.find(':first'),
+					last = $ele.find(':last'),
+					full = $ele.find('*'),
+					iFirst = 0, iLast = full.length;
+				if (!args.length) return $ele.find();
+				if (1 <= args.length) {
+					if ('number' == typeof args[0]) first = $ele.find('*').eq(args[0]);
+					else if ('string' == typeof args[0]) first = $ele.find(args[0]).first();
+					iFirst = function() { for(var i=0;i<full.length;i++) if (full[i] == first.get(0)) return i; }();
+				}
+				if (2 == args.length) {
+					if ('number' == typeof args[1]) last = $ele.find('*').eq(args[1]);
+					else if ('string' == typeof args[1]) last = $ele.find(args[1]).last();
+					iLast = function() { for(var i=0;i<full.length;i++) if (full[i] == last.get(0)) return i; }();
+				}
+				
+				return full.map(function(i) { if (i >= iFirst && i <= iLast) return this; });
+			}
+			throw new Error("Invalid Parent Selector");
+		}
+		$.extend({ findInRange: findInRange });
+		$.fn.extend({
+			findInRange: function() {
+				var args = [this];
+				if (arguments.length) for (x in arguments) args.push(arguments[x]);
+				return $.findInRange.apply($, args);
+			}
+		});
+	})(jQuery);
+	
+	
+	;(function($) {	//	$(ele).outerHTML();
 		$.extend({
 			outerHTML: function() {
 				var $ele = arguments[0],
@@ -2426,12 +2655,13 @@ if (window.hasOwnProperty('jQuery')) {
 		//	make jQuery modals close on clicking background
 		jQuery(document).on('click', '.ui-widget-overlay', function(e) { jQuery('.ui-dialog-content:visible').dialog('close'); });
 		
+		$.stylizeInputs = { init: false };
 		/**	$.ui.stylizeInputs
 		 *	If `$.stylizeInputs.init` is not set to `false` before loading plugin, then style script will be autoloaded to head tag upon load.
 		 *	Otherwise, style tag will not be added to head tag to first call to method `stylizeInputs`.
 		 *	Example setting global options before init:	`$.stylizeInputs = { init: false }`
 		 *	*/
-		(function($) {	//	$.ui.stylizeInputs	//	$(ele).stylizeInputs();	//	Global Options @ $.stylizeInputs
+		;(function($) {	//	$.ui.stylizeInputs	//	$(ele).stylizeInputs();	//	Global Options @ $.stylizeInputs
 			var opts = {  }
 			
 			function _create() {
@@ -2502,4 +2732,3 @@ if (window.hasOwnProperty('jQuery')) {
 		})(jQuery);
 	}
 }
-
