@@ -13,6 +13,13 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at with cauti
 ### Element
 	Element.defaultPX()
 	Element.hasScroll()
+	Element.selectText()
+---
+### location
+	location.base
+	location.control
+	location.page
+	location.params
 ---
 ### Math
 	Math.average()
@@ -48,6 +55,8 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at with cauti
 	window.position()
 ---
 ### GLOBAL METHODS
+	delay()
+	dump()
 	winFocus()
 	winOpen()
 ---
@@ -55,7 +64,11 @@ My own personal library of JavaScript &amp; jQuery extensions. Use at with cauti
 	localStorageHelper
 ---
 ### jQuery Extensions|Methods|Plugins
+	$.childrenRange('selector') || $('selector').childrenRange()
+	$.findInRange('selector') || $('selector').findInRange()
 	$.outerHTML('selector') || $('selector').outerHTML()
+	$.date()
+	$.jQRSS()
 ---
 ### jQuery UI Extensions|Methods|Plugins
 	$.ui.stylizeInputs()	//	$('selector').stylizeInputs();	//	Global Options @ $.stylizeInputs
