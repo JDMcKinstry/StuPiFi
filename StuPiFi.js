@@ -769,7 +769,6 @@
 		}
 	}
 })();
-location.control
 
 /**	Math[extensions]()
  *	Math.average()
