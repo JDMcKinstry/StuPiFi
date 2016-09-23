@@ -760,7 +760,12 @@
 		for (var x in locExt) {
 			try { if (locExt[x]['value'] && typeof locExt[x].value == 'function') locExt[x].value = locExt[x].value(); }
 			catch(e) { locExt[x].value = null; }
-			if (!location.hasOwnProperty(x)) Object.defineProperty(location, x, locExt[x]);
+			try {
+				!location.hasOwnProperty(x) && Object['defineProperty']
+					? Object.defineProperty(location, x, locExt[x]) : location[x] = locExt[x].value;
+			} catch(e) {
+				location[x] = locExt[x].value;
+			}
 		}
 	}
 })();
@@ -1024,6 +1029,100 @@ location.control
 			else if (typeof dec === "number") return r = (r + min).toFixed(dec), r = r <= this.max(max, min) ? r : (r/2).toFixed(dec), (parseFloat(r)+"").length == (r+"").length ? parseFloat(r) : r;
 			return r = r + min, r <= this.max(max, min) ? r : r/2;
 		}
+	}
+})(Math);
+;(function(){	//	Math.toMilliseconds	//
+	var props = {
+			'fromMilliseconds': function(millisecs) {
+				var ms = Array.prototype.slice.call(arguments, 0, 1)[0];
+				if (ms && /number|string/.test(typeof ms)) {
+					var r = [];
+					switch (true) {
+						case (ms >= 2419200000):
+							var i = ~~(ms / 4 / 7 / 24 / 60 / 60 / 1000),
+								j = ms - (i * 2419200000);
+							r.push(i, 'month' + (i>1?'s':''));
+							if (j) r.push(Math.fromMilliseconds.call(this, j));
+							break;
+						case (ms >= 604800000):
+							var i = ~~(ms / 7 / 24 / 60 / 60 / 1000),
+								j = ms - (i * 604800000);
+							r.push(i, 'day' + (i>1?'s':''));
+							if (j) r.push(Math.fromMilliseconds.call(this, j));
+							break;
+						case (ms >= 86400000):
+							var i = ~~(ms / 24 / 60 / 60 / 1000),
+								j = ms - (i * 86400000);
+							r.push(i, 'week' + (i>1?'s':''));
+							if (j) r.push(Math.fromMilliseconds.call(this, j));
+							break;
+						case (ms >= 3600000):
+							var i = ~~(ms / 60 / 60 / 1000),
+								j = ms - (i * 3600000);
+							r.push(i, 'hour' + (i>1?'s':''));
+							if (j) r.push(Math.fromMilliseconds.call(this, j));
+							break;
+						case (ms >= 60000):
+							var i = ~~(ms / 60 / 1000),
+								j = ms - (i * 60000);
+							r.push(i, 'minute' + (i>1?'s':''));
+							if (j) r.push(Math.fromMilliseconds.call(this, j));
+							break;
+						case (ms >= 1000):
+							var i = ~~(ms / 1000),
+								j = ms - (i * 1000);
+							r.push(i, 'second' + (i>1?'s':''));
+							if (j) r.push(Math.fromMilliseconds.call(this, j));
+							break;
+						default:
+							r.push(ms, 'millisecond' + (ms>1?'s':''));
+					}
+					if (r) return r.join(' ');
+				}
+				return this;
+			},
+			'toMilliseconds': function(secs, mins, hours, days, weeks, months) {
+				var args = Array.prototype.slice.call(arguments);
+				if (args.length) {
+					var r = 0;
+					for (var i=0;i<args.length;i++) {
+						var b = args[i];
+						if (/number|string/.test(typeof b)) {
+							b = parseFloat(b);
+							if (b == b) {
+								switch (i) {
+									case 0:
+										r += b * 1000;
+										break;
+									case 1:
+										r += b * 60 * 1000;
+										break;
+									case 2:
+										r += b * 60 * 60 * 1000;
+										break;
+									case 3:
+										r += b * 24 * 60 * 60 * 1000;
+										break;
+									case 4:
+										r += b * 7 * 24 * 60 * 60 * 1000;
+										break;
+									case 5:
+										r += b * 4 * 7 * 24 * 60 * 60 * 1000;
+										break;
+								}
+							}
+						}
+					}
+					if (r) return r;
+				}
+				return this;
+			}
+		};
+	
+	for (var name in props) {
+		var method = props[name];
+		Object['defineProperty'] && !Math.hasOwnProperty(name)
+			? Object.defineProperty(Math, name, { value: method }) : Math[name] = method;
 	}
 })(Math);
 
@@ -1368,6 +1467,19 @@ location.control
 			}
 		}))
 	}
+})();
+;(function() {	//	String.randColorHex	//	Returns Hex Color Code
+	var a = '0123456789ABCDEF'.split(''),
+		b = a.length;
+	function mathRand(min, max) { var r = Math.random() * (max - min + 1); return ~~r + ~~min; }
+	function randColorHex() {
+		var c = mathRand(0, 100) % 2 ? 3 : 6, d = [ '#' ];
+		for (var i=0;i<c;i++) d.push(a[mathRand(0, b-1)]);
+		return d.join('');
+	}
+	Object['defineProperty'] && !String.hasOwnProperty('randColorHex')
+		? Object.defineProperty(String, 'randColorHex', { value: randColorHex })
+			: String.randColorHex = randColorHex;
 })();
 ;(function() {	//	String.reverse	//	Reverses a string
 	var props = {
@@ -1843,28 +1955,43 @@ location.control
 	
 	function logArgs() {
 		var args = Array.prototype.slice.call(arguments, 0);
-		for (var i=0;i<args.length;i++) {
+		for (var i=1;i<=args.length;i++) {
 			var rt = realType.apply(args[i]),
-				color = function() {
-					switch (rt) {
-						case 'Array': return 'color: blue;';
-						case 'Boolean': return 'color: orange;';
-						case 'jQuery': return 'color: green;';
-						case 'Number': return 'color: red;';
-						case 'Object': return 'color: cyan;';
-						case 'String': return 'color: brown;';
-					}
-					return 'color: grey;';
-				}(),
+				bg = 'background:#DDD;',
+				color = logGetColor(rt),
+				style = bg+color+'line-height:20px;',
 				tab = rt.length<7?"\t\t":"\t";
-			console.log("\t%c" + rt, color, tab, args[i]);
+			console.log("\t%c" + rt, style, tab, args[i]);
+			/*if (!(i%5))*/ console.debug(logGetHR(new Array(17).join('-')));
 		}
+	}
+	
+	function logGetColor(rt) {
+		switch (rt) {
+			case 'Array': return 'color:#D00;';
+			case 'Boolean': return 'color:#FF8000;';
+			case 'CacheStorage':
+			case 'Crypto': return 'color:#033;';
+			case 'Boolean': return 'color:#FF8000;';
+			case 'Function': return 'color:#600;';
+			case 'jQuery': return 'color:#070;';
+			case 'Number': return 'color:#00B;';
+			case 'Object': return 'color:#D00;';
+			case 'SpeechSynthesis': return 'color:#3FF;-webkit-text-stroke: 1px #000;';
+			case 'Window': return 'color:#666;';
+		}
+		return 'color:#000;';
+	}
+	
+	function logGetHR(innards) {
+		var line50 = Array(50).join('-');
+		return ' >' + line50 + innards + line50 + '< ';
 	}
 	
 	function dump() {
 		var line50 = Array(50).join('-'),
-			strBegin = ' >' + line50 + '={ BEGIN DUMP }=' + line50 + '< ',
-			strEnd = ' >' + line50 + '={  END  DUMP }=' + line50 + '< ',
+			strBegin = logGetHR('={ BEGIN DUMP }='),
+			strEnd   = logGetHR('={  END  DUMP }='),
 			styles = [
 				'background: linear-gradient(to bottom, #9dd53a 0%,#a1d54f 50%,#80c217 51%,#7cbc0a 100%)'
 				, 'border: 1px solid #b8c6df'
@@ -1883,6 +2010,30 @@ location.control
 	
 	//	add as global variable
 	window.hasOwnProperty("dump")||(window.dump=dump);
+})();
+
+;(function() {
+	function prependToWindowMethod(name, callBack) {
+		if (window[name] && window[name] instanceof Function) {
+			window.__prependToWindowMethod__ = window[name];
+			window[name] = function() {
+				callBack.apply(this, Array.prototype.slice.call(arguments));
+				return window.__prependToWindowMethod__.apply(this, Array.prototype.slice.call(arguments));
+			}
+		}
+	}
+	function appendToWindowMethod(name, callBack) {
+		if (window[name] && window[name] instanceof Function) {
+			window.__appendToWindowMethod__ = window[name];
+			window[name] = function() {
+				var a = window.__appendToWindowMethod__.apply(this, Array.prototype.slice.call(arguments));
+				callBack.apply(this, Array.prototype.slice.call(arguments));
+				return a;
+			}
+		}
+	}
+	window.appendToWindowMethod = appendToWindowMethod;
+	window.prependToWindowMethod = prependToWindowMethod;
 })();
 
 /**	winFocus([MIXED])
@@ -1986,6 +2137,29 @@ location.control
 		if (callBacks.blurFocus.length) for (var x in callBacks.blurFocus) callBacks.blurFocus[x].apply(window, [e, !e.hidden]);
 	}
 	
+	function addToJQuery() {
+		try {
+			if (window.hasOwnProperty('jQuery') && jQuery) {
+				jQuery.winFocus || (jQuery.extend({
+					winFocus: function() {
+						var args = Array.prototype.slice.call(arguments, 0);
+						
+						if (args[0] && /^clear/i.test(args[0])) return winFocus.clear.apply(jQuery);
+						if (args[0] && /^callbacks$/i.test(args[0])) {
+							args = Array.prototype.slice.call(arguments, 1);
+							return winFocus.getCallBacks.apply(window, args);
+						}
+						
+						return winFocus.apply(window, args);
+					}
+				}))
+			}
+			else if (document.readyState != "complete") return setTimeout(addToJQuery, 100);
+		}
+		catch (err) {}
+		return void 0;
+	}
+	
 	function initWinFocus() {
 		//if (console && console['log']) console.log('Initializing winFocus()');
 		//	Standard initialization
@@ -2001,7 +2175,7 @@ location.control
 			document.onfocusin = document.onfocusout = onChange;
 		else	//	All others:
 			window.onpageshow = window.onpagehide = window.onfocus = window.onblur = onChange;
-		if (console && console['log']) console.log('winFocus() Initialized on document.' + hidden);
+		if (console && console['debug']) console.debug('winFocus() Initialized on document.' + hidden);
 	}
 	
 	winFocus.clear = function(what) {
@@ -2032,32 +2206,73 @@ location.control
 	if (document.readyState == "complete") initWinFocus();
 	else window.onload = initWinFocus;
 	
-	//	add as window variable
+	//	add as global variable
 	window.hasOwnProperty("winFocus")||(window.winFocus=winFocus);
 	
-	
-	//	add as a jQuery extension
-	try {
-		if (window.hasOwnProperty('jQuery') && jQuery) {
-			jQuery.winFocus || (jQuery.extend({
-				winFocus: function() {
-					var args = Array.prototype.slice.call(arguments, 0);
-					
-					if (args[0] && /^clear/i.test(args[0])) return winFocus.clear.apply(jQuery);
-					if (args[0] && /^callbacks$/i.test(args[0])) {
-						args = Array.prototype.slice.call(arguments, 1);
-						return winFocus.getCallBacks.apply(window, args);
-					}
-					
-					return winFocus.apply(window, args);
-				}
-			}))
-		}
-	}
-	catch (err) {}
+	addToJQuery();
 })();
 
-/*	winOpen()	*/
+/**	winOnLoad
+ *
+ *	*/
+;(function() {
+	var namespace = 'winOnLoad';
+	
+	var msgs = [
+		'Window was Ready : Document was Loaded'
+		, 'Loaded using jQuery.onload'
+		, 'Loading using window.addEventListener(load)'
+		, 'Loading using window.attachEvent'
+		, 'Is iFrame'
+		, 'Loading using window.attachEvent(onload)'
+		, 'Die Old Browser!'
+	];
+	
+	function stackTrace() {
+		var arr = void 0;
+		try {
+			var obj = arguments.callee.caller; obj.asString = obj.toString();
+			arr = [ obj ];
+			while (arr[arr.length-1]['caller']) {
+				obj = arr[arr.length-1].caller; obj.asString = obj.toString();
+				arr.push(obj);
+			}
+		}
+		catch (err) {  }
+		return arr;
+	}
+	
+	function winOnLoad(cb, noLog) {
+		var $this = window[namespace];
+		try {
+			if (typeof cb == 'function') {
+				if (document.readyState == 'complete') cb(), $this.msg = msgs[0];
+				else if (window.hasOwnProperty('jQuery')) jQuery(window).on('load', cb), $this.msg = msgs[1];
+				else if (window['addEventListener']) document.addEventListener('load', cb, false), $this.msg = msgs[2];
+				else if (window['attachEvent']) {
+					//	iFrame
+					if (window['frameElement']) document.attachEvent('onreadystatechange', function(){ if (document.readyState === 'complete') $this(cb); }), $this.msg = msgs[4];
+					else window.attachEvent('onload', cb), $this.msg = msgs[5];
+				}
+				else {
+					var fn = window.onload; // very old browser, copy old onload
+					window.onload = function() { fn && fn(); ready(); };
+					$this.msg = msgs[6];
+				}
+			}
+			if (console && console['debug'] && (noLog !== true)) console.debug(namespace + '[debug]: ' + $this.msg, { 'callback': cb, stackTrace: stackTrace() });
+		}
+		catch (err) { if (window['console'] && console['error']) console.error("ERROR[winOnLoad()]", err); }
+		return window;
+	}
+	
+	//	add as global variable
+	window.hasOwnProperty(namespace)||(window[namespace]=winOnLoad);
+})();
+
+/**	winOpen()
+ *
+ *	*/
 ;(function() {	//	 alternate way to call for new window as well as maintain a list (use to winOpen.getList())
 	var defaultSpecs = {	// predefined specs filter
 			channelmode: 	'channelmode=no',	//	yes|no|1|0	Whether or not to display the window in theater mode. Default is no. IE only
@@ -2198,6 +2413,29 @@ location.control
 /***	***	jQuery Extensions|Methods|Plugins	***	***/
 
 if (window.hasOwnProperty('jQuery')) {
+	;(function($) {	//	$.fn.attr();  Allows no argument call to return all attributes for each Element in jQuery Element Object
+		var original = $.fn.attr
+		$.fn.extend({ attr: function () {
+			var args = Array.prototype.slice.call(arguments),
+				eles = {};
+			return args.length ? original.apply(this, args) : ($(this).each(function(i) {
+				if (this instanceof Element) {
+					var attrs = Array.prototype.slice.call(this.attributes),
+						tagName = this.tagName,
+						classes = original.apply($(this), ['class']),
+						selector = tagName.toLowerCase()+(this.id?'#'+this.id:'')+(this.name?'[name='+this.name+']':'')+(classes?'.'+classes.replace(' ', '.'):'')
+						obj = { selector: selector }
+					if (!eles[tagName]) eles[tagName] = [];
+					for (var x in attrs) {
+						var nodeName = attrs[x].nodeName;
+						obj[nodeName] = original.apply($(this), [nodeName]);
+					}
+					eles[tagName].push(obj);
+				}
+			}), eles);
+		}	});
+	})(jQuery);
+	
 	;(function($) {	//	$(ele).childrenRange(MIXED VAR);
 		/**	$(ele).childrenRange(MIXED VAR);
 		 *	Select a range of children elements using either integers or string selectors.
@@ -2303,14 +2541,13 @@ if (window.hasOwnProperty('jQuery')) {
 		})
 		$.fn.extend({
 			outerHTML: function() {
-				var args = [this];
-				if (arguments.length) for (x in arguments) args.push(arguments[x]);
+				var args = [this].concat(Array.prototype.slice.call(arguments));
 				return $.outerHTML.apply($, args);
 			}
 		});
 	})(jQuery);
 	
-	(function($) {	//	$.date([num|str|date, [addYears, addMonths, addWeeks, addDays, addHours, addMinutes, addSeconds, getDayName, getMonthName, getWeek, stdTimezoneOffset, dst, format]])
+	;(function($) {	//	$.date([num|str|date, [addYears, addMonths, addWeeks, addDays, addHours, addMinutes, addSeconds, getDayName, getMonthName, getWeek, stdTimezoneOffset, dst, format]])
 		$.extend({
 			date: function() {
 				var args = Array.prototype.slice.call(arguments, 0);
@@ -2543,7 +2780,7 @@ if (window.hasOwnProperty('jQuery')) {
 		}
 	})(jQuery);
 	
-	(function($) {	//	$.jQRSS()
+	;(function($) {	//	$.jQRSS()
 		$.extend({  
 			jQRSS: function(rss, options, func) {
 				if (arguments.length <= 0) return false;
@@ -2650,18 +2887,82 @@ if (window.hasOwnProperty('jQuery')) {
 		};
 	})(jQuery);
 	
+	/*	Example Plug-in Setup [Element Method] (Ready 2 GO!)	*/
+	;(function($) {
+		var nameSpace = 'myExample';
+		
+		var defaultOpts = {
+				
+			}
+		
+		var defaultProps = {
+			
+		}
+		
+		function myExample() {
+			var args = Array.prototype.slice.call(arguments),
+				data = this.data(nameSpace),
+				opts = $.extend(true, {}, defaultOpts)
+			
+			if (data) {	//	already established
+				if (args.length) {
+					if (args[0] === 'option') {	//	runtime option get/set
+						switch (args.length) {
+							case 1:	//	get all options
+								
+								break;
+							case 2:	//	parse for option value
+								
+								break;
+							case 3:	//	set an option
+								
+								break;
+						}
+					}
+					else if (args.length == 1 && typeof args[0] == 'string') {	//	runtime method call
+						
+					}
+					else if (args.length == 2 && /stringfunction/.test(typeof args[0] + typeof args[1])) {	//	runtime event set
+						
+					}
+				}
+				return this;
+			}
+			return myExampleInit.call(this, opts);
+		}
+		
+		function myExampleInit(opts) {	//	for initial setup (first call)
+			var props = $.extend(true, {}, defaultProps)
+			
+			this.addClass(nameSpace.toLowerCase()).data(nameSpace, {});
+		}
+		
+		function myExampleMethod01() {
+			console.log('just an exxample method')
+		}
+		
+		$.extend({
+			myExample: function() {
+				var $ele = arguments[0],
+					args = Array.prototype.slice.call(arguments, 1);
+				if ($ele && !($ele instanceof jQuery) && (typeof $ele == 'string' || $ele instanceof HTMLCollection || $ele instanceof Array)) $ele = $($ele);
+				if ($ele) return $.fn.myExample.apply($ele, args);
+				return this;
+			}
+		});
+		$.fn.extend({ myExample: myExample });
+	})(jQuery);
+	
 	/*	Require jQuery UI	*/
 	if (jQuery.hasOwnProperty('ui')) {
 		//	make jQuery modals close on clicking background
 		jQuery(document).on('click', '.ui-widget-overlay', function(e) { jQuery('.ui-dialog-content:visible').dialog('close'); });
 		
-		$.stylizeInputs = { init: false };
 		/**	$.ui.stylizeInputs
 		 *	If `$.stylizeInputs.init` is not set to `false` before loading plugin, then style script will be autoloaded to head tag upon load.
 		 *	Otherwise, style tag will not be added to head tag to first call to method `stylizeInputs`.
-		 *	Example setting global options before init:	`$.stylizeInputs = { init: false }`
 		 *	*/
-		;(function($) {	//	$.ui.stylizeInputs	//	$(ele).stylizeInputs();	//	Global Options @ $.stylizeInputs
+		;(function($, init) {	//	$.ui.stylizeInputs	//	$(ele).stylizeInputs();	//	Global Options @ $.stylizeInputs
 			var opts = {  }
 			
 			function _create() {
@@ -2720,7 +3021,7 @@ if (window.hasOwnProperty('jQuery')) {
 					'.ui-widget-input-text:focus': '{ -webkit-box-shadow: 0 0 12px #38c; -moz-box-shadow: 0 0 12px #38c; box-shadow: 0 0 12px #38c; }'
 				}
 			
-			if (!$.hasOwnProperty('stylizeInputs')) $.stylizeInputs = { init: true, initialized: false, styles: styles };
+			if (!$.hasOwnProperty('stylizeInputs')) $.stylizeInputs = { init: init, initialized: false, styles: styles };
 			else {
 				if (!$.stylizeInputs.hasOwnProperty('init')) $.stylizeInputs.init = true;
 				if (!$.stylizeInputs.hasOwnProperty('styles')) $.stylizeInputs.styles = styles;
@@ -2728,7 +3029,7 @@ if (window.hasOwnProperty('jQuery')) {
 				$.stylizeInputs.initialized = false;
 			}
 			
-			if ($.stylizeInputs.init) initStylizeInputs();
-		})(jQuery);
+			if (init) initStylizeInputs();
+		})(jQuery, true);
 	}
 }
