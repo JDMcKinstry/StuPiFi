@@ -24,11 +24,8 @@
 		//	if direction still not set, then set to true/asc
 		if (void 0 == dir) dir = true;
 		
-		Object.defineProperty(this, "dir", {
-			enumerable: false,
-			value: dir,
-			writable: true
-		});
+		if (this['dir'] == void 0) Object.defineProperty(this, "dir", { enumerable: false, value: dir, writable: true });
+		else this.dir = dir;
 		
 		//	numbers, strings, booleans, dates, elements, arrays, objects, null|undefined
 		function ss(a, b, dir) {
@@ -292,7 +289,7 @@
 			'j': function() { return this.getDate(); },
 			'l': function() { return getDayName(this); },
 			'N': function() { return this.getDay() + 1; },
-			'S': function() { var a = this.getDate(); if (/1/.test(parseInt((a + "").charAt(0)))) return "th"; a = parseInt((a + "").charAt(1)); return 1 == a ? "st" : 2 == a ? "nd" : 3 == a ? "rd" : "th" },
+			'S': function() { var a = this.getDate(); return /^1[0-9]$/.test(a) ? "th" : /1$/.test(a) ? "st" : /2$/.test(a) ? "nd" : /3$/.test(a) ? "rd" : "th"; },
 			'w': function() { return this.getDay(); },
 			'z': function() { return Math.round(Math.abs((this.getTime() - new Date('1/1/' + this.getFullYear()).getTime())/(8.64e7))); },
 			/*	WEEK	*/
@@ -428,8 +425,20 @@
 	Object['defineProperty'] ? Object.defineProperty(dateFormat, 'compound', { value: compound }) : dateFormat['compound'] = compound;
 	Object['defineProperty'] ? Object.defineProperty(dateFormat, 'constants', { value: constants }) : dateFormat['constants'] = constants;
 	Object['defineProperty'] ? Object.defineProperty(dateFormat, 'pretty', { value: pretty }) : dateFormat['pretty'] = pretty;
-	
 	Object['defineProperty'] && !Date.prototype.hasOwnProperty('format') ? Object.defineProperty(Date.prototype, 'format', { value: dateFormat }) : Date.prototype['format'] = dateFormat;
+	
+	//window.dateFormat = function(objDate, str) { return objDate.format.apply(objDate, arguments); }
+})();
+;(function() {
+	var i, ii;
+	function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+	function getRandomSecs(min, max) { return getRandomInt(min, max) * 1000; }
+	function getRandomMins(min, max) { return getRandomSecs(min, max) * 60; }
+	function showConsoleMsg() {
+		console.info('Will reload in '+ii+' minute'+(ii>1?'s':'')+' ...');
+		setTimeout(function() { ii--; if (ii) showConsoleMsg(); }, 60000);
+	}
+	
 })();
 
 /**	Element[extensions]()
@@ -531,7 +540,8 @@
 		return ret.join('');
 	};
 	
-	function objectToArray(obj) { return Object.keys(obj).map(key => obj[key]); }
+	//function objectToArray(obj) { return Object.keys(obj).map(key => obj[key]); }	/*	TODO: Determine better Safari Alt.	*/
+	function objectToArray(a){ var b = []; Object.keys(a).forEach(function(c) { b[c] = a[c]; }); return b};
 	
 	//	add as window variable
 	window.hasOwnProperty("defaultPX")||(window.defaultPX=defaultPX);
@@ -632,7 +642,7 @@
 	function hasScrollY(ele) { return (ele.scrollHeight > ele.clientHeight) && (getComputedStyle(ele)['overflowY'] != 'hidden') }	//	vertical
 	
 	//	add as window variable
-	window.hasOwnProperty("hasScroll")||(window.matchUrl=hasScroll);
+	window.hasOwnProperty("hasScroll")||(window.hasScroll=hasScroll);
 	
 	//	add as method of a Element|HTMLCollection|Array ( exp: ele.hasScroll(); )
 	var name = 'hasScroll';
@@ -713,7 +723,7 @@
 })();
 
 /**	location[extensions]()
- *	location[]
+ *	location['base', 'control', 'page', 'params']
  **/
 ;(function() {
 	if (location) {
@@ -1024,7 +1034,7 @@
 	if (!Math.hasOwnProperty('rand')) {
 		Math.rand = function(min, max, dec) {
 			var r = this.random() * (max - min + 1);
-			if (dec !== true && typeof dec !== "number") return ~~r + ~~min;
+			if (dec !== true && typeof dec !== "number") return Math.floor(r) + min;
 			else if (typeof dec === "number") return r = (r + min).toFixed(dec), r = r <= this.max(max, min) ? r : (r/2).toFixed(dec), (parseFloat(r)+"").length == (r+"").length ? parseFloat(r) : r;
 			return r = r + min, r <= this.max(max, min) ? r : r/2;
 		}
@@ -1124,6 +1134,55 @@
 			? Object.defineProperty(Math, name, { value: method }) : Math[name] = method;
 	}
 })(Math);
+
+;(function() {
+	function notNum(a) {
+		try {
+			var b = a.constructor && a.constructor.name ? a.constructor.name : Object.prototype.toString.call(a).slice(8, -1);
+			return b != 'Number';
+		}
+		catch(e) { return false; }
+	}
+	function pad_int() {
+		var x = this, y;
+		if (notNum(x)) {
+			var err = "`this` is " + (typeof x) + ". Must be a Number";
+			try {
+				if (parseFloat(x) == x) x = parseFloat(x);
+				else throw err.replace(/(?!^`)this(?=`)/, x.toString());
+			}
+			catch(e) { throw err; }
+		}
+		if (void 0 == arguments[0]) y = 2;
+		else {
+			y = arguments[0];
+			if (notNum(y)) {
+				var err = "`this` is " + (typeof y) + ". Must be a Number";
+				try {
+					if (parseFloat(y) == y) y = parseFloat(y);
+					else throw err.replace(/(?!^`)this(?=`)/, y.toString());
+				}
+				catch(e) { throw err; }
+			}
+			if (y > 0) y++;
+			else if (y < 0) y--;
+		}
+		var a = 0 <= x,	//	if num is pos|neg
+			c = Math.abs(x),	//	pos of x
+			d = 0 < y,	//	if size is pos|neg
+			b = parseInt(Math.abs(y)) - (~~c + "").length + 1,	//	Array length
+			b = Array(b).join("0"),	//	the padding of 0's
+			a = a ? "" : "-",
+			f = a + b + c,	//	pad 0's to the left
+			g = parseFloat(a + c + b),	//	pad 0's to the right
+			h = g == (a + c + b) ? g : (a + c + b);	//	for right padding, see if it's capable of being a Float (NUMBER)
+		
+		return d ? f : h;
+	};
+	window.padInt = function padInt(num, size) { return pad_int.call(num, size); }
+	Object['defineProperty'] && !Number.prototype.hasOwnProperty('pad')
+		? Object.defineProperty(Number.prototype, 'pad', { value: pad_int }) : Number.prototype['pad'] = pad_int;
+})();
 
 /**	navigator [extended]
  *	navigator[browser|mobile|version|webkit]
@@ -1258,7 +1317,7 @@
 			}
 		}
 		
-		console.log(ret, str, obj, args)
+		//console.log(ret, str, obj, args)
 		
 		return ret ? ret.join(str) : "";
 	}
@@ -1293,7 +1352,8 @@
 	function realType(toLower) {
 		var r = typeof this;
 		try {
-			if (window.hasOwnProperty('jQuery') && this.constructor && this.constructor == jQuery) r = 'jQuery';
+			if (window.hasOwnProperty('jQuery') && (this == jQuery || (this.constructor && this.constructor == jQuery))) r = 'jQuery';
+			else if (window.hasOwnProperty('google') && (this == google || (this.constructor && this.constructor == google))) r = 'google';
 			else r = this.constructor && this.constructor.name ? this.constructor.name : Object.prototype.toString.call(this).slice(8, -1);
 		}
 		catch(e) { if (this['toString']) r = this.toString().slice(8, -1); }
@@ -1306,22 +1366,38 @@
 	function realType(obj, toLower) {
 		var r = typeof obj;
 		try {
-			if (window.hasOwnProperty('jQuery') && obj.constructor && obj.constructor == jQuery) r = 'jQuery';
-			else r = obj.constructor && obj.constructor.name ? obj.constructor.name : Object.prototype.toString.call(obj).slice(8, -1);
+			if (window.hasOwnProperty('jQuery') && (obj == jQuery || (obj.constructor && obj.constructor == jQuery))) r = 'jQuery';
+			else r = /*obj.constructor && obj.constructor.name ? obj.constructor.name :*/ Object.prototype.toString.call(obj).slice(8, -1);
 		}
 		catch(e) { if (obj['toString']) r = obj.toString().slice(8, -1); }
 		return !toLower ? r : r.toLowerCase();
 	}
-	function length() {
-		if (/object/i.test(realType(this, true))) {
+	function objLen(obj) {
+		if (void 0 == obj) obj = this;
+		var rt = typeof obj;
+		
+		try {
+			if (obj != obj || void 0 == obj) return 0;
+			if (/boolean/i.test(rt)) return obj.valueOf() ? 1 : 0;
+			if (/number/i.test(rt)) return ("".obj).length;
+			if (/string/i.test(rt)) return obj.length;
+			if (obj instanceof Array) return ("".obj).length;
+		} catch(e) { }
+		
+		rt = realType(obj, true);
+		if (/function|object/i.test(rt)) {
 			var i = 0;
-			for (var x in this) if (this.hasOwnProperty(x)) i++;
+			for (var x in obj) if (obj.hasOwnProperty(x)) i++;
 			return i;
 		}
-		if (/boolean/i.test(realType(this, true))) return this.valueOf() ? 1 : 0;
+		return 0;
 	}
-	Object['defineProperty'] && !Object.prototype.hasOwnProperty('length')
-		? Object.defineProperty(Object.prototype, 'length', { get: length }) : Object.prototype.__defineGetter__('length', length);
+	function init() {
+		Object['defineProperty'] && !Object.prototype.hasOwnProperty('length')
+			? Object.defineProperty(Object.prototype, 'length', { get: objLen }) : Object.prototype.__defineGetter__('length', objLen);
+	}
+	//init();
+	window.hasOwnProperty("objLen")||(window.objLen=objLen);
 })();
 
 /**	RegExp[extensions]()
@@ -1365,7 +1441,7 @@
 ;(function() {	//	RegExp.escape	//
 	function regexURL() { return /^(([^\:\/\?\#]+)\:)?(\/\/([^\/\?\#]*))?([^\?\#]*)(\?([^\#]*))?(\#(.*))?/; }
 	Object.defineProperty && !RegExp.hasOwnProperty('url')
-		? Object.defineProperty(RegExp, 'url', { get: regexURL }) : RegExp.prototype__defineGetter__('url', regexURL);
+		? Object.defineProperty(RegExp, 'url', { get: regexURL }) : RegExp.prototype.__defineGetter__('url', regexURL);
 })();
 
 /**	String[extensions]()
@@ -1426,17 +1502,27 @@
 		})
 })();
 ;(function() {	//	String.matchUrl	//	quick and ez access to regex match on url string
+	/**	matches[	//	0: full url, 2:	scheme, 4: authority, 5: path, 7: query, 9: fragment	//
+	 *		0:	full url
+	 *		1:	
+	 *		2:	scheme
+	 *		3:	
+	 *		4:	authority
+	 *		5:	path
+	 *		6:	
+	 *		7:	query
+	 *		8:	
+	 *		9:	fragment
+	 *	]
+	 **/
+	var regUrl = /^(([^\:\/\?\#]+)\:)?(\/\/([^\/\?\#]*))?([^\?\#]*)(\?([^\#]*))?(\#(.*))?/;	//	older version
+	var regUri = RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");	//	more condensed
+	
 	function matchUrl(url) {
 		var	regMatch = void 0,
-			araLabels = "url scheme authority path query fragment".split(" "),
-			regUrl = /^(([^\:\/\?\#]+)\:)?(\/\/([^\/\?\#]*))?([^\?\#]*)(\?([^\#]*))?(\#(.*))?/,
-			retVal = {
-				url: null,
-				scheme: null, authority: null,
-				path: null, query: null,
-				fragment: null, valid: null
-			};
-		"string" === typeof url && "" != url && (regMatch = url.match(regUrl));
+			araLabels = ['url', '', 'scheme', '', 'authority', 'path', '', 'query', '', 'fragment'],
+			retVal = { authority: null, fragment: null, path: null, query: null, scheme: null, url: null, valid: null };
+		"string" === typeof url && "" != url && (regMatch = url.match(regUri));
 		if ("object" === typeof regMatch) for (x in regMatch) araLabels[x] && (retVal[araLabels[x]] = regMatch[x]);
 		retVal.scheme && retVal.authority && (retVal.valid = !0);
 		return retVal
@@ -1449,6 +1535,9 @@
 	function method() { return matchUrl(this.valueOf()); }
 	Object['defineProperty'] && !String.prototype.hasOwnProperty('matchUrl')
 		? Object.defineProperty(String.prototype, 'matchUrl', { value: method }) : String.prototype['matchUrl'] = method;
+	//	add some string props usful for other features
+	Object['defineProperty'] && !String.hasOwnProperty('regUri')
+		? Object.defineProperty(String, 'regUri', { value: regUri }) : String['regUri'] = regUri;
 	
 	//	add as a jQuery extension
 	if (window.hasOwnProperty('jQuery')) {
@@ -1572,10 +1661,15 @@
  *	Simple class to build on localStorage Object and ease use of that object along with providing a custom controlled event system.
  *	*/
 ;(function() {
+	//	determines if localStorage is availble to the browser
 	var lsAvailable = function() { try { var a = window.localStorage; a.setItem("__storage_test__", "__storage_test__"); a.removeItem("__storage_test__"); return !0; } catch (b) { return !1; } }();
 	
 	/*------------------------------------------------------------------------*/
 	
+	/** localStorageHelper()
+	 *	Establishment of localStorageHelper Class.
+	 *	Simply call with "var lsh = new localStorageHelper()"
+	 **/
 	function localStorageHelper(debuggingOnOff) {
 		//	always return undefined if localStorage not available
 		if (!this.available) return void 0;
@@ -1597,8 +1691,9 @@
 		return this;
 	}
 	
-	/*------------------------------------------------------------------------*/
+	/*-----------------Class Creation Helper Methods---------------------------*/
 	
+	//	for setting properties of localStorageHelper when creating new instance
 	function definePropertyMethod(name) {
 		if (!this[name])
 			Object.defineProperty(this, name, { value: function() { return this.fire.apply(this, [name].concat(Array.prototype.slice.call(arguments, 0))); } });
@@ -1616,6 +1711,7 @@
 		return this;
 	}
 	
+	//	used to define when a localStorageHelper event Begins
 	function eventBegin(name) {
 		if (this.instance) {
 			var args = Array.prototype.slice.call(arguments, 1);
@@ -1630,6 +1726,7 @@
 		return this;
 	}
 	
+	//	used to define when a localStorageHelper event Ends
 	function eventEnd(name) {
 		if (this.instance) {
 			var args = Array.prototype.slice.call(arguments, 1);
@@ -1646,6 +1743,7 @@
 	
 	/*------------------------------------------------------------------------*/
 	
+	//	arranges arguments within other methods
 	function methodArrangeArgs() {
 		var args = Array.prototype.slice.call(arguments, 0),
 			prefix = this.prefix || this.prototype.prefix,
@@ -1666,11 +1764,13 @@
 		return ret;
 	}
 	
+	//	clear all items in localStorage
 	function methodClear() {
 		localStorage.clear();
 		return this;
 	}
 	
+	//	fire an event in localStorageHelper
 	function methodFire(name) {
 		var ret = null;
 		this.trigger(name+'Begin');
@@ -1768,7 +1868,6 @@
 	}
 	
 	function methodOff(name, callback) {
-		
 		if (this.instance) {
 			if ((name && 'string' == typeof name) && (callback && 'function' == typeof callback)) {
 				var rx = new RegExp('^(([a-z]){3,}([A-Z]{1}[a-z]+){0,1})(Begin|End)$'),
@@ -1813,7 +1912,7 @@
 	function methodRealType(toLower) {
 		var r = typeof this;
 		try {
-			if (window.hasOwnProperty('jQuery') && this.constructor && this.constructor == jQuery) r = 'jQuery';
+			if (window.hasOwnProperty('jQuery') && (obj == jQuery || (obj.constructor && obj.constructor == jQuery))) r = 'jQuery';
 			else r = this.constructor && this.constructor.name ? this.constructor.name : Object.prototype.toString.call(this).slice(8, -1);
 		}
 		catch(e) { if (this['toString']) r = this.toString().slice(8, -1); }
@@ -1836,7 +1935,7 @@
 			for (var i=0;i<args.length;i++) {
 				var ai = args[i],
 					t = localStorageHelper.prototype.realType.call(ai);
-				console.log([i && localStorageHelper.prototype.realType.call(args[i-1]) == 'String'], t == 'jQuery', typeof ai == 'object')
+				//console.log([i && localStorageHelper.prototype.realType.call(args[i-1]) == 'String'], t == 'jQuery', typeof ai == 'object')
 				if (i && localStorageHelper.prototype.realType.call(args[i-1]) == 'String') {
 					items[args[i-1]] = { type: t, value: ai };
 				}
@@ -1933,9 +2032,67 @@
  *
  *	@example delay(2);console.debug('This will display after 2 seconds have passed');
  **/
-;(function() {	//	delay(ms)
+;(function() {	//	delay(ms, as_milliseconds=FALSE)
 	function delay(secs, ASms) { !0 !== ASms && (secs *= 1E3); for (var a = Date.now(); Date.now() - a < secs;); }
 	window.hasOwnProperty("delay")||(window.delay=delay);
+})();
+
+/**	deleteAllCookies()
+ *
+ **/
+;(function() {
+	if (!window['deleteAllCookies'] && document['cookie']) {
+		window.deleteAllCookies = function(showLog) {
+			var arrCookies = document.cookie.split(';'),
+				arrPaths = location.pathname.replace(/^\//, '').split('/'),	//	remove leading '/' and split any existing paths
+				arrTemplate = [ 'expires=Thu, 01-Jan-1970 00:00:01 GMT', 'path={path}', 'domain=' + window.location.host, 'secure=' ];	//	array of cookie settings in order tested and found most useful in establishing a "delete"
+			for (var i in arrCookies) {
+				var strCookie = arrCookies[i];
+				if (typeof strCookie == 'string' && strCookie.indexOf('=') >= 0) {
+					var strName = strCookie.split('=')[0];	//	the cookie name
+					for (var j=1;j<=arrTemplate.length;j++) {
+						if (document.cookie.indexOf(strName) < 0) break; // if this is true, then the cookie no longer exist
+						else {
+							var strValue = strName + '=; ' + arrTemplate.slice(0, j).join('; ') + ';';	//	made using the temp array of settings, putting it together piece by piece as loop rolls on
+							if (j == 1) document.cookie = strValue;
+							else {
+								for (var k=0;k<=arrPaths.length;k++) {
+									if (document.cookie.indexOf(strName) < 0) break; // if this is true, then the cookie no longer exist
+									else {
+										var strPath = arrPaths.slice(0, k).join('/') + '/';	//	builds path line 
+										strValue = strValue.replace('{path}', strPath);
+										document.cookie = strValue;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			showLog && window['console'] && console.info && console.info("\n\tCookies Have Been Deleted!\n\tdocument.cookie = \"" + document.cookie + "\"\n");
+			return document.cookie;
+		}
+	}
+})();
+
+;(function() {	//	docReadyLoad(cb)
+	
+	function docReadyLoad(cb, args) {
+		if (cb && typeof cb == 'function' && window.hasOwnProperty('docReadyLoad')) {
+			if (!window.docReadyLoad.hasOwnProperty('loadList')) window.docReadyLoad.loadList = [];
+			window.docReadyLoad.loadList.push({ func: cb, args: void 0 != args ? args : [] });
+		}
+		if (document.readyState == 'complete') {
+			var ll = window.docReadyLoad.loadList;
+			for (var x in ll) {
+				var itm = ll[x];
+				if (typeof itm == 'object' && typeof itm['func'] == 'function') itm.func.apply(window, itm.args);
+			}
+		}
+		else setTimeout(docReadyLoad, 1);
+	}
+	
+	window.docReadyLoad = docReadyLoad;
 })();
 
 /**	dump(varried)
@@ -1945,7 +2102,7 @@
 	function realType(toLower) {
 		var r = typeof this;
 		try {
-			if (window.hasOwnProperty('jQuery') && this.constructor && this.constructor == jQuery) r = 'jQuery';
+			if (window.hasOwnProperty('jQuery') && (obj == jQuery || (obj.constructor && obj.constructor == jQuery))) r = 'jQuery';
 			else r = this.constructor && this.constructor.name ? this.constructor.name : Object.prototype.toString.call(this).slice(8, -1);
 		}
 		catch(e) { if (this['toString']) r = this.toString().slice(8, -1); }
@@ -2011,28 +2168,110 @@
 	window.hasOwnProperty("dump")||(window.dump=dump);
 })();
 
+/**	isEmpty(varried)
+ *	Simple method for testing if item is "empty"
+ **/
 ;(function() {
-	function prependToWindowMethod(name, callBack) {
+	function isEmpty(a) { return !a || void 0 === a || a !== a || 0 >= a || "object" == typeof a && /\{\}|\[(null(,)*)*\]/.test(JSON.stringify(a)); };
+	window.hasOwnProperty("empty")||(window.empty=isEmpty);
+})();
+
+/**	extendWindowMethod(name, callback, prepend)
+ *	Extend any Function belonging to "window".
+ *	Use 3rd param BOOL to prepend(true) || append(default) to the method.
+ *	Also, you can remove an added method by submitting "remove" as the 3rd param.
+ *	Will return original method, or false(something went wrong).
+ *	Automatically prevents adding the same method twice with one exception:
+ *		you can add the same method to begining (prepend) and end(default) of original method.
+ **/
+;(function() {
+	function extendWindowMethod(name, callback, prepend) {
 		if (window[name] && window[name] instanceof Function) {
-			window.__prependToWindowMethod__ = window[name];
-			window[name] = function() {
-				callBack.apply(this, Array.prototype.slice.call(arguments));
-				return window.__prependToWindowMethod__.apply(this, Array.prototype.slice.call(arguments));
+			var sub = '__extensions__';
+			if (prepend == 'remove') {
+				if (window[name].hasOwnProperty(sub)) {
+					if (window[name][sub]['prepended']) {
+						var arr = window[name][sub]['prepended'],
+							strCB = callback.toString();
+						for (var x in arr) {
+							if (arr[x] instanceof Function && arr[x].toString() == strCB) {
+								delete arr[x];
+								break;
+							}
+						}
+					}
+					if (window[name][sub]['appended']) {
+						var arr = window[name][sub]['appended'],
+							strCB = callback.toString();
+						for (var x in arr) {
+							if (arr[x] instanceof Function && arr[x].toString() == strCB) {
+								delete arr[x];
+								break;
+							}
+						}
+					}
+				}
+				return window[name][sub] ? window[name][sub]['original'] : window[name];
 			}
-		}
-	}
-	function appendToWindowMethod(name, callBack) {
-		if (window[name] && window[name] instanceof Function) {
-			window.__appendToWindowMethod__ = window[name];
-			window[name] = function() {
-				var a = window.__appendToWindowMethod__.apply(this, Array.prototype.slice.call(arguments));
-				callBack.apply(this, Array.prototype.slice.call(arguments));
-				return a;
+			if (!window[name].hasOwnProperty(sub)) {
+				var org = window[name],
+					func = function() {
+						var args = Array.prototype.slice.call(arguments);
+						if (window[name][sub]['prepended']) {
+							var arr = window[name][sub]['prepended'];
+							for (var x in arr) if (arr[x] instanceof Function) arr[x].apply(this, Array.prototype.slice.call(args));
+						}
+						var res = window[name][sub]['original'].apply(this, Array.prototype.slice.call(arguments));
+						if (window[name][sub]['appended']) {
+							var arr = window[name][sub]['appended'];
+							for (var x in arr) if (arr[x] instanceof Function) res = arr[x].apply(this, Array.prototype.slice.call(args));
+						}
+						return res;
+					};
+				window[name] = func;
+				window[name][sub] = { original: org };
 			}
+			if (prepend === true) {
+				if (!window[name][sub]['prepended']) window[name][sub]['prepended'] = [ callback ];
+				else {
+					var arr = window[name][sub]['prepended'];
+					if (!(arr.find(function(func) { return func instanceof Function && func.toString() == callback.toString(); }))) window[name][sub]['prepended'].unshift(callback);
+				}
+			}
+			else {
+				if (!window[name][sub]['appended']) window[name][sub]['appended'] = [ callback ];
+				else {
+					var arr = window[name][sub]['appended'];
+					if (!(arr.find(function(func) { return func instanceof Function && func.toString() == callback.toString(); }))) window[name][sub]['appended'].push(callback);
+				}
+			}
+			return window[name][sub] ? window[name][sub]['original'] : window[name];
 		}
+		return false;
 	}
-	window.appendToWindowMethod = appendToWindowMethod;
-	window.prependToWindowMethod = prependToWindowMethod;
+	
+	window.extendWindowMethod = extendWindowMethod;
+})();
+
+/**	debounce(callback, arguments[], delayTime)	||	debounce.apply(element, [callback, arguments[], delayTime])
+ *		Function.debounce(element, arguments[], delayTime)
+ **/
+;(function() {
+	var debounceTimer;
+	function debounce(cb, args, delayTime) {
+		var $this = this;
+		args = 'object' == typeof args ? Array.prototype.slice.call(args) : void 0 != args ? [args] : [];
+		'number' != typeof delayTime && (delayTime = 0);
+		debounceTimer && clearTimeout(debounceTimer);
+		return debounceTimer = setTimeout(function() { cb.apply($this, args); }, delayTime);
+	}
+	window.hasOwnProperty("debounce") || (window.debounce = debounce);
+	
+	/**	USE THE FOLLOWING WITH CAUTION || REMOVE IF YOU DON'T WANT TO APPEND TO FUNCTION OBJECT **/
+	function funcDebounce($this, args, delayTime) { return debounce.apply($this, [this, args, delayTime]); }
+	Object['defineProperty'] && !Function.prototype.hasOwnProperty('funcDebounce')
+		? Object.defineProperty(Function.prototype, 'debounce', { value: funcDebounce })
+			: Function.prototype.debounce = funcDebounce;
 })();
 
 /**	winFocus([MIXED])
@@ -2174,7 +2413,7 @@
 			document.onfocusin = document.onfocusout = onChange;
 		else	//	All others:
 			window.onpageshow = window.onpagehide = window.onfocus = window.onblur = onChange;
-		if (console && console['debug']) console.debug('winFocus() Initialized on document.' + hidden);
+		if (!1 && console && console['debug']) console.debug('winFocus() Initialized on document.' + hidden);
 	}
 	
 	winFocus.clear = function(what) {
@@ -2241,7 +2480,7 @@
 		return arr;
 	}
 	
-	function winOnLoad(cb, noLog) {
+	function winOnLoad(cb, doLog) {
 		var $this = window[namespace];
 		try {
 			if (typeof cb == 'function') {
@@ -2259,7 +2498,7 @@
 					$this.msg = msgs[6];
 				}
 			}
-			if (console && console['debug'] && (noLog !== true)) console.debug(namespace + '[debug]: ' + $this.msg, { 'callback': cb, stackTrace: stackTrace() });
+			if ((doLog === true) && (console && console['debug'])) console.debug(namespace + '[debug]: ' + $this.msg, { 'callback': cb, stackTrace: stackTrace() });
 		}
 		catch (err) { if (window['console'] && console['error']) console.error("ERROR[winOnLoad()]", err); }
 		return window;
@@ -2323,7 +2562,7 @@
 	
 	function matchUrl(url) {
 		var	regMatch = void 0,
-			araLabels = "url scheme authority path query fragment".split(" "),
+			araLabels = "url  scheme  authority path  query  fragment".split(" "),
 			regUrl = /^(([^\:\/\?\#]+)\:)?(\/\/([^\/\?\#]*))?([^\?\#]*)(\?([^\#]*))?(\#(.*))?/,
 			retVal = {
 				url: null,
@@ -2409,9 +2648,268 @@
 	}
 })();
 
+
+;(function() {
+	var imperials = {
+			inches: 1,
+			feet: 12,
+			yards: 36,
+			miles: 63360,
+			nautical: 72913.4
+		},
+		metrics = {
+			yocto: 1e22,
+			zepto: 1e19,
+			atto: 1e16,
+			femto: 1e13,
+			pico: 1e10,
+			nano: 1e7,
+			micro: 1e4,
+			milli: 10,
+			centi: 1,
+			deci: .1,
+			meter: .01,
+			deka: 1e-3,
+			hecto: 1e-4,
+			kilo: 1e-5,
+			mega: 1e-8,
+			giga: 1e-11,
+			tera: 1e-14,
+			peta: 1e-17,
+			exa: 1e-20,
+			zetta: 1e-23,
+			yotta: 1e-26
+		}
+	
+	
+	var standards = {
+			imperial: {
+				length: {
+					inches: 1,
+					feet: 12,
+					yards: 36,
+					miles: 63360,
+					nautical: 72913.4
+				},
+				volume: [  ],
+				mass: [  ]
+			},
+			metric: {
+				length: {
+					yocto: 1e22,
+					zepto: 1e19,
+					atto: 1e16,
+					femto: 1e13,
+					pico: 1e10,
+					nano: 1e7,
+					micro: 1e4,
+					milli: 10,
+					centi: 1,
+					deci: .1,
+					meter: .01,
+					deka: 1e-3,
+					hecto: 1e-4,
+					kilo: 1e-5,
+					mega: 1e-8,
+					giga: 1e-11,
+					tera: 1e-14,
+					peta: 1e-17,
+					exa: 1e-20,
+					zetta: 1e-23,
+					yotta: 1e-26
+				},
+				volume: [  ],
+				mass: [  ]
+			}
+		}
+	
+	function to(what) {
+		var standard = this.from.standard,
+			quantity = this.from.quantity,
+			unit = this.from.unit,
+			num = this.from.num
+		
+		var _to = {
+				standard: void 0,
+				quantity: void 0,
+				unit: void 0
+			}
+		
+		for (var a in this.standards) {
+			for (var b in this.standards[a]) {
+				if (this.standards[a][b].indexOf(what) > -1) {
+					_to.standard = a;
+					_to.quantity = b;
+					_to.unit = what;
+					break;
+				}
+				else if (a=='metric' && b=='length') {
+					
+				}
+			}
+			if (_to.unit) break;
+		}
+		
+		return [what, this, this.from, _to]
+	}
+	
+	function setFromMethod(standard, quantity, unit) {
+		var fn = function(num) {
+			this.from = { standard:standard, quantity:quantity, unit:unit, num:num };
+			return this;
+		}
+		return (new Function("return function(call) { return function " + unit + "() { return call(this, arguments); }; };")())(Function.apply.bind(fn));
+	}
+	
+	function cls() {
+		var convert = { standards: {} }
+		
+		for (var standard in standards) {
+			var quantities = standards[standard];
+			if (!convert.standards.hasOwnProperty(standard)) convert.standards[standard] = {};
+			for (var quantity in quantities) {
+				var units = quantities[quantity];
+				if (!convert.standards[standard].hasOwnProperty(quantity)) convert.standards[standard][quantity] = [];
+				for (unit in units) {
+					if (standard=='metric' && quantity=='length')
+						convert.standards[standard][quantity].push(unit += /meter/.test(unit) ? 's' : 'meters');
+					else convert.standards[standard][quantity].push(unit);
+				}
+			}
+		}
+		
+		for (var standard in standards) {
+			var quantities = standards[standard];
+			for (var quantity in quantities) {
+				var units = quantities[quantity];
+				for (unit in units) convert[unit] = setFromMethod(standard, quantity, unit);
+			}
+		}
+		
+		convert.to = to;
+		
+		return convert;
+	}
+	
+	//if (!window.hasOwnProperty('convert')) Object['defineProperty'] ?  Object.defineProperty(window, 'convert', { enumerable: true, value: new cls(), writable: false }) : window.convert = new cls();
+})();
+
 /***	***	jQuery Extensions|Methods|Plugins	***	***/
 
 if (window.hasOwnProperty('jQuery')) {
+	
+	;(function($) {	//	$.inputAlphaNumeric	//	set first variable "initializeON" to bool to toggle on || off from document.ready
+		var initializeON = false;
+		
+		function __event(e) {
+			return $.inputAlphaNumeric.keydown.event.apply($.inputAlphaNumeric, [e, this]);
+		}
+		
+		function adjustValue() {	//	clean up inputs when feature is toggled 'on'
+			if (this.state) {
+				var regEx = this.regEx;
+				this.inputs.each(function() {
+					var a = $(this), b = a.val(), c = a.data('allow');
+					if (b != '') switch(!0) {
+						case $(this).hasClass('alpha'):
+							a.val( b.split('').filter(function(v) { if ((c && 0 <= c.indexOf(v)) || regEx.alpha.test(v)) return v; }).join('') );
+							break;
+						case $(this).hasClass('numeric'):
+							a.val( b.split('').filter(function(v) { if ((c && 0 <= c.indexOf(v)) || regEx.numeric.test(v)) return v; }).join('') );
+							break;
+						case $(this).hasClass('alphanumeric'):
+							a.val( b.split('').filter(function(v) { if ((c && 0 <= c.indexOf(v)) || regEx.alphanumeric.test(v)) return v; }).join('') );
+							break;
+					}
+				});
+			}
+			return this;
+		}
+		
+		function keyDown() {
+			return { event: keyDownEvent, process: keyDownProcess }
+		}
+		function keyDownEvent(e, inp) {
+			var a = $(inp), b = e.key, c = a.data('allow');
+			return (!e.altKey && !e.ctrlKey) && 1 == b.length ? this.keydown.process.apply(this, [a, b, c]) : !0;
+		}
+		function keyDownProcess(a, b, c) {
+			var regEx = this.regEx;
+			switch(!0) {
+				case a.hasClass('alpha'):
+					return c ? 0 <= c.indexOf(b) || regEx.alpha.test(b) : regEx.alpha.test(b);
+				case a.hasClass('numeric'):
+					return c ? 0 <= c.indexOf(b) || regEx.numeric.test(b) : regEx.numeric.test(b);
+				case a.hasClass('alphanumeric'):
+					return c ? 0 <= c.indexOf(b) || regEx.alphanumeric.test(b) : regEx.alphanumeric.test(b);
+			}
+			return !0;
+		}
+		
+		function inputAlphaNumeric(initOn) {
+			Object.defineProperties(this, {
+				__state: { enumerable: false, value: false, writable: true },
+				adjustVal: {
+					enumerable: false,
+					value: adjustValue,
+					writable: false
+				},
+				classes: { enumerable: true, get: function() { return [ 'alpha', 'numeric', 'alphanumeric' ]; } },
+				inputs: { enumerable: true, get: function() { return $(this.selector); } },
+				keydown: { enumerable: false, get: keyDown },
+				off: { value: function() { return this.toggle('off'); } },
+				on: { value: function() { return this.toggle('on'); } },
+				regEx: {
+					enumerable: true,
+					get: function() {
+						return {
+							alpha: new RegExp('[a-z]', 'i'),
+							numeric: new RegExp('[0-9]'),
+							alphanumeric: new RegExp('[a-z]|[0-9]', 'i')
+						}
+					}
+				},
+				selector: { enumerable: true, get: function() { return '.' + this.classes.join(', .'); } },
+				state: {
+					get: function() { return this.__state; },
+					set: function(onOff) {
+						switch (typeof onOff) {
+							case 'boolean':
+								this.__state = onOff
+								break;
+							case 'string':
+								switch (onOff) {
+									case 'on':
+										this.__state = true;
+										break;
+									case 'off':
+										this.__state = false;
+										break;
+									default:
+										this.__state = true;
+								}
+								break;
+							default:
+								this.__state = true;
+						}
+						return this;
+					}
+				},
+				toggle: {
+					value: function(onOff) {
+						this.state = void 0 == onOff ? !this.state : onOff;
+						$(document)[this.state ? 'on' : 'off']('keydown', 'input', __event);
+						return this.adjustVal();
+					}
+				}
+			});
+			if (initOn) this.on();
+			return this;
+		}
+		
+		$.inputAlphaNumeric = new inputAlphaNumeric(initializeON);
+	})(jQuery);
+	
 	;(function($) {	//	$.fn.attr();  Allows no argument call to return all attributes for each Element in jQuery Element Object
 		var original = $.fn.attr
 		$.fn.extend({ attr: function () {
@@ -2523,7 +3021,6 @@ if (window.hasOwnProperty('jQuery')) {
 			}
 		});
 	})(jQuery);
-	
 	
 	;(function($) {	//	$(ele).outerHTML();
 		$.extend({
@@ -3017,7 +3514,7 @@ if (window.hasOwnProperty('jQuery')) {
 						'background-clip': 'padding-box'
 					},
 					'.ui-state-default.ui-widget-input-text': '{ font-weight: inherit; }',
-					'.ui-widget-input-text:focus': '{ -webkit-box-shadow: 0 0 12px #38c; -moz-box-shadow: 0 0 12px #38c; box-shadow: 0 0 12px #38c; }'
+					'.ui-widget-input-text:focus': '{ -webkit-box-shadow: 0 0 0.750em #38c; -moz-box-shadow: 0 0 0.750em #38c; box-shadow: 0 0 0.750em #38c; }'
 				}
 			
 			if (!$.hasOwnProperty('stylizeInputs')) $.stylizeInputs = { init: init, initialized: false, styles: styles };
@@ -3031,4 +3528,4 @@ if (window.hasOwnProperty('jQuery')) {
 			if (init) initStylizeInputs();
 		})(jQuery, true);
 	}
-}
+};
