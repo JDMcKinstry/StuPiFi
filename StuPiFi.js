@@ -3528,4 +3528,4 @@ if (window.hasOwnProperty('jQuery')) {
 			if (init) initStylizeInputs();
 		})(jQuery, true);
 	}
-};
+}
