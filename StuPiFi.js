@@ -2024,6 +2024,73 @@
 
 /***	*M*E*T*H*O*D*S*		***/
 
+;(function() {
+	/**	AssociativeArray()
+	 *	Simple helper method for making Pseudo-Realistic Associative Arrays.
+	 *	
+	 *	@example AssociativeArray( { key: value } )
+	 *	@example AssociativeArray( key, value )
+	 *	@example AssociativeArray( [keys], [value] )
+	 **/
+	function AssociativeArray() {
+		var args = Array.prototype.slice.call(arguments),
+			arr = [];
+		switch (true) {
+			case args.length == 1 && 'object' == typeof args[0]:
+				var keys = Object.keys(args[0]),
+					vals = Object.values(args[0]);
+				for (var i=0;i<keys.length;i++) if (/num|str/i.test(typeof keys[i])) arr[keys[i]] = vals[i];
+				arr.length = vals.length;	//	set array length
+				break;
+			case args.length == 2 && /^\[[^\]]*\]$/.test(JSON.stringify(args)):	//	2 Strings
+				arr[args[0]] = args[1];
+				arr.length = 1;	//	set array length
+				break;
+			case args.length == 2 && /^\[\[[^\]]*\],\[[^\]]*\]\]$/.test(JSON.stringify(args)):	//	2 Arrays
+				var keys = args[0],
+					vals = args[1];
+				//	add blank values foreach extra key if there are more keys than values
+				if (keys.length > vals.length) keys.map(function(v, i) { if (i >= vals.length) vals.push(void 0); });
+				for (var i=0;i<keys.length;i++) if (/num|str/i.test(typeof keys[i])) arr[keys[i]] = vals[i];
+				//	append any left over values to array
+				if (vals.length > keys.length) vals.map(function(v, i) { if (i >= keys.length) arr.push(v); });
+				arr.length = vals.length;	//	set array length
+				break;
+			case !!arguments.length:
+				arr = Array.prototype.concat.apply([], arguments);
+				break;
+		}
+		return arr
+	}
+	window.hasOwnProperty("AssociativeArray") || (window.AssociativeArray = AssociativeArray);
+})();
+
+/**	debounce(callback, arguments, delay, object)
+ *	Method to help reduce multifire issues 
+ **/
+;(function() {
+	function __debounce__(cb, args, delay, obj) {	//	returns timer
+		void 0 == obj && (obj = this);
+		obj['__debounce_timer__'] && clearTimeout(obj['__debounce_timer__']);
+		args = args && 'object' == typeof args ? Array.prototype.slice.call(args) : void 0 != args ? [args] : arguments;
+		(0 > delay || "number" != typeof delay) && (delay = 250);	//	250 milliseconds as a default delay time
+		return obj['__debounce_timer__'] = setTimeout(function() { delete obj['__debounce_timer__']; cb.apply(obj, args); }, delay);
+	}
+	function debounce(cb, args, delay, obj) {	//	return function
+		var tmr;
+		return function() {
+			void 0 == obj && (obj = this);
+			tmr && clearTimeout(tmr);
+			args = args && 'object' == typeof args ? Array.prototype.slice.call(args) : void 0 != args ? [args] : arguments;
+			(0 > delay || "number" != typeof delay) && (delay = 250);	//	250 milliseconds as a default delay time
+			tmr = setTimeout(function() { cb.apply(obj, args); }, delay);
+		}
+	}
+	window.hasOwnProperty("__debounce__") || (window.__debounce__ = __debounce__);
+	window.hasOwnProperty("debounce") || (window.debounce = debounce);
+	if (window.hasOwnProperty('jQuery') && !jQuery['debounce']) jQuery.debounce = debounce;
+})();
+
 /**	delay(ms)
  *	Simple method for creating a pseudo delay when needed.
  *
@@ -2172,8 +2239,106 @@
  *	Simple method for testing if item is "empty"
  **/
 ;(function() {
-	function isEmpty(a) { return !a || void 0 === a || a !== a || 0 >= a || "object" == typeof a && /\{\}|\[(null(,)*)*\]/.test(JSON.stringify(a)); };
+	/**
+	 *	!a				Basic empty check. Takes care of 90% of items passed through.
+	 *	0 >= a			Catchs '0' strings and empty Arrays
+	 *
+	 *	/\{\}/.test(JSON.stringify(a).replace(/"[^"]*":(0|"0*"|false|null|\{\}|\[(null(,)?)*\]),?/g, '').replace(/"[^"]*":\{\},?/g, ''))	//	to determine Blank Object
+	 *	/|\[(null(,)*)*\]/.test(JSON.stringify(a).replace(/(0|"0*"|false|null|\{\}|\[(null(,)?)*\]),?/g, ''))								//	to determine Blank Array
+	 **/
+	function isEmpty(a) {
+		if (!a || 0 >= a) return !0;
+		if ("object" == typeof a) {
+			var b = JSON.stringify(a).replace(/"[^"]*":(0|"0*"|false|null|\{\}|\[(null(,)?)*\]),?/g, '').replace(/"[^"]*":\{\},?/g, '');
+			if ( /^$|\{\}|\[\]/.test(b) ) return !0;
+			else if (a instanceof Array)  {
+				b = b.replace(/(0|"0*"|false|null|\{\}|\[(null(,)?)*\]),?/g, '');
+				if ( /^$|\{\}|\[\]/.test(b) ) return !0;
+			}
+		}
+		return false;
+	}
 	window.hasOwnProperty("empty")||(window.empty=isEmpty);
+	
+	
+	function test() {
+		function method(val) {
+			if (this == window) return empty(val);
+			var obj={}, func = this.test;
+			for (var x in this.test) this.test[x] instanceof Function && (obj[x] = this.test[x]());
+			return obj;
+		}
+		Object.defineProperties(method, {
+			'Blank String': {
+				enumerable: true,
+				value: function() { return this(''); },
+				writeable: false
+			},
+			'Empty Array': {
+				enumerable: true,
+				value: function() { return this([]); },
+				writeable: false
+			},
+			'Empty Object': {
+				enumerable: true,
+				value: function() { return this({}); },
+				writeable: false
+			},
+			'False': {
+				enumerable: true,
+				value: function() { return this(false); },
+				writeable: false
+			},
+			'Full Array:Empty Items': {
+				enumerable: true,
+				value: function() { return this(new Array(5)); },
+				writeable: false
+			},
+			'Full Object:Empty Items': {
+				enumerable: true,
+				value: function() { return this({ 0: void 0, 'doesnt': null, 'matter': false }); },
+				writeable: false
+			},
+			'NaN': {
+				enumerable: true,
+				value: function() { return this(NaN); },
+				writeable: false
+			},
+			'null': {
+				enumerable: true,
+				value: function() { return this(null); },
+				writeable: false
+			},
+			'undefined': {
+				enumerable: true,
+				value: function() { return this(void 0); },
+				writeable: false
+			},
+			'Zero Integer': {
+				enumerable: true,
+				value: function() { return this(0); },
+				writeable: false
+			},
+			'Zero String': {
+				enumerable: true,
+				value: function() { return this('0'); },
+				writeable: false
+			},
+			'Long Test 1': {
+				enumerable: true,
+				value: function() { return this({ 1: '', 2: [], 3: {}, 4: false, 5:new Array(3), 6: NaN, 7: null, 8: void 0, 9: 0, 10: '0', 11: { 6: NaN, 7: null, 8: void 0 } }); },
+				writeable: false
+			},
+			'Long Test 2': {
+				enumerable: true,
+				value: function() { return this(["",[],{},false,[null,null,null],null,null,null,0,"0",{"6":null,"7":null}]); },
+				writeable: false
+			}
+		});
+		return method;
+	}
+	window.empty.test = new test();
+	
 })();
 
 /**	extendWindowMethod(name, callback, prepend)
@@ -2253,25 +2418,37 @@
 	window.extendWindowMethod = extendWindowMethod;
 })();
 
-/**	debounce(callback, arguments[], delayTime)	||	debounce.apply(element, [callback, arguments[], delayTime])
- *		Function.debounce(element, arguments[], delayTime)
+/**	fori
  **/
 ;(function() {
-	var debounceTimer;
-	function debounce(cb, args, delayTime) {
-		var $this = this;
-		args = 'object' == typeof args ? Array.prototype.slice.call(args) : void 0 != args ? [args] : [];
-		'number' != typeof delayTime && (delayTime = 0);
-		debounceTimer && clearTimeout(debounceTimer);
-		return debounceTimer = setTimeout(function() { cb.apply($this, args); }, delayTime);
+	function fori(cb, len) {
+		(0 > len || "number" != typeof len) && (len = 10);
+		for (var i=0;i<len;i++) cb();
 	}
-	window.hasOwnProperty("debounce") || (window.debounce = debounce);
-	
-	/**	USE THE FOLLOWING WITH CAUTION || REMOVE IF YOU DON'T WANT TO APPEND TO FUNCTION OBJECT **/
-	function funcDebounce($this, args, delayTime) { return debounce.apply($this, [this, args, delayTime]); }
-	Object['defineProperty'] && !Function.prototype.hasOwnProperty('funcDebounce')
-		? Object.defineProperty(Function.prototype, 'debounce', { value: funcDebounce })
-			: Function.prototype.debounce = funcDebounce;
+	window.hasOwnProperty("fori") || (window.fori = fori);
+})();
+
+/**	throttle(callback, arguments, delay, object)
+ *	Fires so many times per second until event is finished
+ **/
+;(function() {
+	function throttle(cb, args, delay, obj) {
+		(0 > delay || "number" != typeof delay) && (delay = 250);	//	250 milliseconds as a default delay time
+		var lst, tmr;
+		return function() {
+			void 0 == obj && (obj = this);
+			args = args && 'object' == typeof args ? Array.prototype.slice.call(args) : void 0 != args ? [args] : arguments;
+			var now = +new Date;
+			if (lst && now < lst + delay) {	//	hold it
+				tmr && clearTimeout(tmr);
+				return tmr = setTimeout(function() { lst = now; cb.apply(obj, args); }, delay);
+			}
+			lst = now;
+			return cb.apply(obj, args);
+		}
+	}
+	window.hasOwnProperty("throttle") || (window.throttle = throttle);
+	if (window.hasOwnProperty('jQuery') && !jQuery['throttle']) jQuery.throttle = throttle;
 })();
 
 /**	winFocus([MIXED])
@@ -2649,7 +2826,7 @@
 })();
 
 
-;(function() {
+;(function() {	//	TODO unit standards conversion
 	var imperials = {
 			inches: 1,
 			feet: 12,
@@ -2797,6 +2974,7 @@
 /***	***	jQuery Extensions|Methods|Plugins	***	***/
 
 if (window.hasOwnProperty('jQuery')) {
+	;(function($) { if (!$.concat) $.extend({ concat: function() { return Array.prototype.concat.apply([], arguments); } }); })(jQuery);
 	
 	;(function($) {	//	$.inputAlphaNumeric	//	set first variable "initializeON" to bool to toggle on || off from document.ready
 		var initializeON = false;
